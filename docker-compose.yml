@@ -1,0 +1,12 @@
+services:
+  factionwars:
+    # To build locally:  docker compose up --build
+    # To pull from CI:   docker compose pull && docker compose up -d
+    image: ghcr.io/thequib/factions:latest
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./factions.db:/app/factions.db   # persistent state survives restarts
+      - ./sprites:/app/sprites           # drop PNGs here without rebuilding
+    restart: unless-stopped

@@ -233,7 +233,7 @@ class Simulation:
             if not getattr(burner, 'burn_aura', False) or burner.dead:
                 continue
             for e in self.entities:
-                if e.fid == burner.fid or e.dead:
+                if e.fid == burner.fid or e.dead or e.type != 'unit':
                     continue
                 if _dist(e.x, e.y, burner.x, burner.y) < 22:
                     if not any(d.get('src') is burner for d in e.dots):
