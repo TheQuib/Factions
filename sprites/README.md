@@ -19,10 +19,10 @@ Drop PNG files here to override the procedural pixel-art drawing.
 
 | Target       | Canvas draw size |
 |--------------|-----------------|
-| Units        | 24 × 24 px       |
+| Units        | 32 × 32 px       |
 | Buildings    | 32 × 32 px       |
 | Castles      | 64 × 64 px       |
-| Titans       | 48 × 48 px       |
+| Titans       | 64 × 64 px       |
 
 Larger source images are fine — they'll be scaled down. Keep backgrounds
 transparent (RGBA PNG). The flash highlight and HP bar are drawn on top by
