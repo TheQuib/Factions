@@ -2,7 +2,7 @@ services:
   factionwars:
     # To build locally:  docker compose up --build
     # To pull from CI:   docker compose pull && docker compose up -d
-    image: factions:latest
+    image: ghcr.io/thequib/factions:latest
     build: .
     ports:
       - "8000:8000"
