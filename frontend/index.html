@@ -10,11 +10,26 @@ body{background:#0a0a0a;display:flex;justify-content:center;align-items:center;
 canvas{image-rendering:pixelated;box-shadow:0 0 40px rgba(0,0,0,0.9);}
 #status{position:fixed;top:8px;left:50%;transform:translateX(-50%);
         color:#444;font:9px monospace;pointer-events:none;}
+#controls{position:fixed;bottom:14px;right:16px;display:flex;gap:8px;z-index:100;}
+.ctrl-btn{
+  background:rgba(10,10,10,.92);color:#999;
+  border:1px solid #555;
+  font:bold 11px 'Courier New',monospace;
+  padding:7px 16px;cursor:pointer;letter-spacing:2px;
+  transition:color .15s,border-color .15s,background .15s;
+  text-shadow:0 0 6px rgba(255,255,255,.15);
+}
+.ctrl-btn:hover{color:#eee;border-color:#aaa;background:rgba(30,30,30,.95);}
+.ctrl-btn.armed{color:#FF4444;border-color:#FF6644;background:rgba(40,8,8,.95);animation:arm-pulse .5s infinite alternate;}
+@keyframes arm-pulse{from{opacity:.7}to{opacity:1}}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="status">connecting…</div>
+<div id="controls">
+  <button class="ctrl-btn" id="btnReset">⟳ RESET</button>
+</div>
 <script>
 'use strict';
 
@@ -891,6 +906,35 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
+// ── Control buttons ───────────────────────────────────────────────────────────
+(function(){
+  const btn = document.getElementById('btnReset');
+  let armed = false, armTimer = null;
+
+  function disarm() {
+    armed = false;
+    btn.textContent = '⟳ RESET';
+    btn.classList.remove('armed');
+  }
+
+  btn.addEventListener('click', () => {
+    if (!armed) {
+      // First click — arm the button
+      armed = true;
+      btn.textContent = '⚠ CONFIRM?';
+      btn.classList.add('armed');
+      armTimer = setTimeout(disarm, 3000);   // auto-disarm after 3 s
+    } else {
+      // Second click — fire
+      clearTimeout(armTimer);
+      disarm();
+      fetch('/api/reset', { method: 'POST' })
+        .catch(e => console.error('reset failed', e));
+      // Server pushes updated state via WS; no need to reload
+    }
+  });
+})();
 </script>
 </body>
 </html>

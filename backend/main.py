@@ -111,6 +111,19 @@ async def api_leaderboard():
     return JSONResponse(db.get_leaderboard())
 
 
+@app.post('/api/reset')
+async def api_reset():
+    """Immediately restart the simulation and push fresh state to all clients."""
+    sim.init_game()
+    db.save_state(sim)
+    if _clients:
+        payload = json.dumps(
+            {**sim.to_state(include_terrain=True), 'full': True},
+            default=str)
+        await _broadcast(payload)
+    return JSONResponse({'ok': True})
+
+
 @app.websocket('/ws')
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()

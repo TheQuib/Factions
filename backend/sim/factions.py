@@ -19,7 +19,7 @@ MAX_UNITS_PER_FACTION = 38
 PANEL_GRACE     = 35
 
 # Server tick / speed settings
-TICK_INTERVAL   = 0.05    # real-seconds between simulation ticks (5 Hz)
+TICK_INTERVAL   = 0.033    # real-seconds between simulation ticks (5 Hz)
 GAME_SPEED      = 0.5    # game-seconds advanced per real-second
 # Each tick: dt = GAME_SPEED * TICK_INTERVAL = 0.1 game-seconds
 
