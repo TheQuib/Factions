@@ -16,6 +16,12 @@ It is recommended to run Factions as a container for ease of use and portability
 python3 -m pip install requirements.txt
 ```
 
+### Create database file
+Factions stores data in a single SQLite file. Create it in the project parent directory with:
+```Bash
+touch factions.db
+```
+
 ### Run server
 ```Bash
 ./run.sh
@@ -33,6 +39,12 @@ Note, the default port is `8000`, you can specify your preferred port as the fir
 First, you'll need to install the Docker engine on your computer.
 
 Follow [Docker's Instructions for your system](https://docs.docker.com/engine/install/) to install.
+
+## Create database file
+Factions stores data in a single SQLite file. Create it in the project parent directory with:
+```Bash
+touch factions.db
+```
 
 ## Run the container
 
