@@ -63,19 +63,7 @@ docker compose up -d
 
 If you prefer to build the container locally, the Dockerfile is included in this repo.
 
-First you'll need to edit `docker-compose.yml`, edit the `image:` line to be:
-
-```docker-compose
-image: factions:latest
-```
-
-Then build the container:
-
+Build and run the container:
 ```Bash
-docker build -t factions:latest .
-```
-
-Then run the container:
-```Bash
-docker compose up -d
+docker compose up -d --build
 ````
