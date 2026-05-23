@@ -98,7 +98,7 @@ let state      = null;   // most recent server state
 let terrain    = null;   // persisted between ticks (only sent on full messages)
 let clientParticles = []; // locally-generated particles from server events
 
-const WS_URL = `ws://${location.host}/ws`;
+const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 let ws;
 
 function connectWS() {
