@@ -8,4 +8,6 @@ services:
     volumes:
       - ./factions.db:/app/factions.db
       - ./sprites:/app/sprites
+    environment:
+      - AUTH_PASSWORD=super-secret-password
     restart: unless-stopped
