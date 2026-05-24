@@ -703,7 +703,7 @@ function _buildBridges(t, rivers){ _buildRivers(t); return _cachedTerrainBridges
 // ── HUD ───────────────────────────────────────────────────────────────────────
 const PANEL_H=114, PANEL_START=70;
 
-function drawHUD(){
+function drawHUD(dt){
   if(!state)return;
   const factions=state.factions||{}, factionKeys=state.faction_keys||[];
   const gameTime=state.game_time||0;
@@ -754,9 +754,12 @@ function drawHUD(){
   const rankedKeys=[...factionKeys].sort((a,b)=>factionScore(b)-factionScore(a));
 
   ctx.save();ctx.beginPath();ctx.rect(MAP_W,PANEL_START-4,UI,factionKeys.length*PANEL_H+8);ctx.clip();
-  for(let pi=0;pi<factionKeys.length;pi++){
-    const k=factionKeys[pi];
-    const y=PANEL_START+pi*PANEL_H;
+  for(let pi=0;pi<rankedKeys.length;pi++){
+    const k=rankedKeys[pi];
+    const targetY=PANEL_START+pi*PANEL_H;
+    if(panelAnimY[k]===undefined)panelAnimY[k]=targetY;
+    panelAnimY[k]+=(targetY-panelAnimY[k])*Math.min(1,8*dt);
+    const y=panelAnimY[k];
     const f=factions[k]||{};
     const castle=castles[k];
     const unitN=hudUnit[k]||0,bldN=hudBld[k]||0;
@@ -855,6 +858,7 @@ VIG.addColorStop(0,'rgba(0,0,0,0)');VIG.addColorStop(1,'rgba(0,0,0,0.55)');
 
 // ── Main render loop (RAF — pure drawing, no simulation) ──────────────────────
 let lastTs = performance.now();
+const panelAnimY = {}; // animated Y positions for leaderboard panels, keyed by faction id
 
 function loop(ts){
   const dt = Math.min((ts - lastTs) / 1000, 0.08);
@@ -900,7 +904,7 @@ function loop(ts){
   drawParticles();
   ctx.fillStyle=VIG;ctx.fillRect(0,0,MAP_W,MAP_H);
   ctx.restore();
-  drawHUD();
+  drawHUD(dt);
   if((state.game_over_timer||0)>0)drawWinScreen();
 
   requestAnimationFrame(loop);
