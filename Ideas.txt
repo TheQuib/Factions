@@ -1,0 +1,190 @@
+This file is for storing ideas related to the project for reference.
+
+Factions:
+    The Arcane Academy: Slow, pricey glass cannons
+        Fire Mage (DOT AoE fire),
+        Water Mage (single-target frost bolts that slow),
+        Earth Mage (single-target medium-damage projectile),
+        Air Mage (chain lightning)
+
+        Library (income and 5% faster attack speed per library)
+        Arcane Turret (
+    
+    
+    The Sylvian Stewards: Fast burst damage
+        Archers (high-range, high-damage, slow-shooting), 
+        Rogues (high burst-damage stealth units), 
+        Treants (giant slow tanks with slow, high-damage attacks)
+    
+        Forest (income, and elf units near the forest cannot be targeted; rogues do sneak attacks)
+        Bramble Patch (deals damage in an AoE when damaged)
+    
+    
+    Hive: Fast swarms
+        Swarmers (fast glass cannons), 
+        Hosts (spawn explosive mites), 
+        Soldiers (average melee units)
+    
+        Biomass Tumor (provides income and increases the movement speed of hive units in a slowly growing AoE)
+        Defensive Hive (produces defensive swarmers)
+    
+    
+    Lux Legionis: Unkillable juggernauts
+        Paladin (high-damage, slow-attacking tanks), 
+        Clerics (healers with fast, low damage),
+        Squire (cheaper melee unit with balanced attack and defense)
+    
+        Blacksmithy (improves armor and provides income)
+        Church (provides AoE healing to allies)
+    
+    
+    Forges: Expensive armored combatants
+        Gnome Engineer (places temporary turrets down), 
+        Golem (tanky unit), 
+        Tank (high-damage ranged unit, very expensive)
+    
+        Mines (provides income and an extra 5% max HP)
+        Flamethrower Turret (deals AoE damage in a cone)
+    
+    
+    The Bastion: Defensive faction
+        Builder (builds walls and towers), 
+        Archer (expensive unit that can stand on a wall for protection), 
+        Mortar (slow-attacking, huge-range, small-AoE, medium-damage)
+    
+        Wall (blocks movement and can hold an archer)
+        Gate (wall but allows friendly units to pass)
+        Tower (fires arrows)
+    
+        Quarry (provides income and gives all friendly structures 10% HP)
+        Bastila (high single-target damage)
+    
+    
+    The Cult: Swarms transitioning into hero units
+        Cultists (extremely cheap, weak cannon fodder), 
+        Cult Leader (expensive unit with weak stats that buffs nearby cultists),
+        Elder God (expensive unit that can only be bought when 50 cultists are on the map; sacrifices cultists to heal or use abilities)
+    
+        Altar of Madness (provides income and reduces the number of cultists sacrificed per ability)
+        Void Rift (attacks nearby enemies in melee with void tendrils)
+    
+    
+    The Mycelium: Stalling with Mushlings and stealing units
+        Mushlings (cheap, small, swarmy, high-HP, low-damage units), 
+        Sporeburster (tanky, incredibly slow unit that deals low damage in an AoE)
+        Sporomancer (can mind-control one enemy unit at a time that slowly dies)
+    
+        Fungal Patch (produces income and has a 10% chance to respawn a killed Mushling in the patch)
+        Sporolith (does very small damage in a slowly growing AoE)
+    
+    
+    The Cryptlords: Slow unstoppable march
+        Death Knight (melee champion that summons zombies [melee undead]), 
+        Lich (ranged champion that summons ranged skeletal archers), 
+        Dominus Mortus (very expensive weak unit that can sacrifice 100 skeletons and/or zombies to become a titan of death)
+    
+        Graveyard (provides income and occasionally produces skeletal archers and zombies)
+        Crypt (produces up to 6 skeletal archers to protect the castle)
+    
+    
+    The Hostile Hospice: 
+        Test Subject (unit that spawns with randomized stats [HP, armor, attack, speed]), 
+        Plague Doctor (ranged DOT that, if a unit dies with it, has a chance to spread to nearby enemies)
+    
+        Lab (income production, and Test Subject stat ranges increase by 10 [top and bottom increase, so 10–150 goes to 20–160])
+        Toxic Smokestack (deals low damage in a very slowly growing AoE cloud)
+    
+    
+    The Empire of Man: Weak units that get buffed when near units of the same type
+        Hoplite (melee unit that gets more armor based on the number of nearby hoplites)
+        Archer (ranged unit that gets a higher attack rate when near other archers)
+        Bard (spellcaster that can give temporary shield HP to units; shields more with more bards around)
+    
+        Farm (produces income, which very slowly increases the longer the building survives)
+        Archer Tower (fires arrows to damage enemies)
+    
+    
+    Goblin Gang: Hit-and-run faction of skirmishing cavalry and infantry
+        Wolf (fast melee unit)
+        Wolf Rider (fast cavalry that, when killed, makes a goblin [weak melee unit that debuffs enemies])
+        Mangudai (fast goblin archers on cavalry that create a Goblin Archer [weak ranged unit] when killed)
+    
+        Fighting Pit (produces income and increases allied damage by 5%)
+        Pitfall Trap (damages units that get too close)
+
+    Horsemen of the Apocalypse: Extremely expensive hero faction where units must be bought in order
+        Pestilence (applies a DOT in melee combat that has a chance to spread if that unit dies)
+        War (powerful melee combatant)
+        Famine (melee combatant that weakens all nearby enemies)
+        Death (slow unit with extreme melee damage)
+    
+        Cairn (provides income; built when a horseman dies)
+        The Marble Monument (reduces all enemy buildings’ max HP by 10%; built if Pestilence is alive)
+        The Crimson Cenotaph (reduces all enemy units’ HP by 10%; built if War is alive)
+        The Onyx Obelisk (reduces all enemy units’ damage by 10%; built if Famine is alive)
+        The Alabaster Angel (1 enemy unit dies every 5 seconds; built if Death is alive)
+    
+    Celestial Symphony: A faction of expensive, weak units that give buffs
+        Axe-Guitar (single-target melee unit that buffs damage)
+        Tuba-Cannon (slow-attacking ranged unit that buffs health)
+        War-Drummer (small, weak melee AoE unit that buffs movement speed)
+        Conductor (expensive unit that increases attack speed)
+        Pianist (slow AoE healing allies/harming enemies unit)
+        Blowdart-Flute (fast-attacking ranged unit that gives larger AoE)
+        Soundboard Tech (unit that buffs attack range)
+    
+        Amphitheater (produces income and gives a 1% buff to all stats)
+        Community Center (produces a small horde of fans [weak melee units] to defend the castle)
+    
+    
+    Gnomes: Powerful units with a chance to blow themselves up
+        Gnome Sapper (high-damage ranged AoE bombs, but a 5% chance to blow themself up)
+        Gnome Craftsman (creates small clockworks to fight enemies, with a small chance each time they are hit to attack their creator)
+        Gnome Titan (expensive, powerful unit with ranged and melee attacks, high HP, armor, and damage) 
+    
+        Gnomish Workshop (produces large amounts of income, but has a chance to explode)
+        Minefield (produces small landmines on occasion, which explode when an enemy is near)
+    
+    Blood: Units that get stronger the lower their HP is
+        Blood Knight (a unit with a large health pool and initially weak attack)
+        Blood Mage (a ranged unit that slowly siphons enemy health and splits a portion of it among nearby allies)
+    
+        Blood Fountain (produces income, increases max HP by 10%)
+        Bloodstone (constantly deals a low amount of damage to a single target in range)
+    
+
+Mechanics:
+    Regions: Many battles happen simultaneously, and the winners are champions of regions (gaining a victor buff). The majority of regions on the world map determines planet ownership, and majorities of planets in a system determine solar system ownership. Majority solar system ownership at the end of the day determines that day’s victor.
+        Battle maps,
+        World maps,
+        Solar system maps,
+        Galactic map
+
+    Hero units:
+        Units gain experience based on the HP of slain enemy units. If they gain more XP than their max HP, they level up and get a 5% buff to all stats per level. At level 5, they gain a name and a hero ability.
+    
+    Weather:
+        Occurs every 5 minutes.
+        Frog Rain (hostile frogs fall all over the map)
+        Blood Rain (heals all units)
+        Wildfire (sets units inside on fire with a fire DOT)
+        Smog (damages units inside the cloud slowly)
+        Pestilence (gives 10 random units the Pestilence DOT, which has a chance to spread if they die)
+        Blizzard (slows all units on the map)
+        Earthquake (damages non-castle buildings)
+        Madness (random units go insane and begin to attack friend and foe)
+        Mania (all units stop fighting until the event ends)
+        Midas Rain (all factions gain gold)
+        Warp Storm (units randomly trade places)
+        Meteor Storm (5 random locations are struck by high-damage meteors)
+        Blessings (10 random units gain powerful buffs)
+        Divine Wrath (the two units with the most health are killed)            
+            
+
+Fixes:
+    Reimplement towers falling at 10 minutes and titans spawning at 20 minutes
+    Reimplement moving leaderboard
+    Stop map names from changing mid-fight
+    Make pixel sprites render larger
+    Add unique castles for each faction
+    Clerics shouldn’t heal buildings
