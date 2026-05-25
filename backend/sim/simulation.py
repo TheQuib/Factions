@@ -421,9 +421,10 @@ class Simulation:
                 total = sum(counts.values())
                 reg['controlling_fid'] = best
                 reg['control_pct'] = counts[best] / total
-            else:
-                reg['controlling_fid'] = None
-                reg['control_pct'] = 0.0
+            elif reg['controlling_fid']:
+                # Region is empty but already claimed — restore to full control
+                reg['control_pct'] = min(1.0, reg['control_pct'] + 0.2)
+            # else: never been claimed, leave as-is
 
     # ── Serialisation ─────────────────────────────────────────────────────────
 
