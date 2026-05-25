@@ -6,8 +6,8 @@ MAP_H = 820
 # --- Timing constants (game-seconds) ---
 # Default game speed: 0.5 game-sec / real-sec  →  each of these is ~2x the original value
 # so a battle plays out over ~30-60 real minutes, with titans appearing after ~4 hours.
-TITAN_TIME      = 7200   # ~4 real hours at default speed
-TOWER_EXPIRE    = 4200   # ~2.3 real hours
+TITAN_TIME      = 1200   # 20:00 game time
+TOWER_EXPIRE    = 600    # 10:00 game time
 RESTART_DELAY   = 120    # 4 real minutes between games
 PASSIVE_GOLD    = 10
 BUILD_GOLD      = 2.5
