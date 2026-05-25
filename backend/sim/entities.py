@@ -500,6 +500,7 @@ class Unit:
         self.frost_slow = 1.0
         self.confused = False
         self.confuse_t = 0.0
+        self._locked_target = None  # persists between ticks to prevent oscillation
         self.prev_x, self.prev_y = x, y
         self.moved_dist = 0.0
         self._sim = sim  # weak back-reference for terrain helpers
@@ -706,6 +707,15 @@ class Unit:
                 if near:
                     self._attack(near, sim)
 
+    def _target_score(self, e):
+        """Lower score = higher priority."""
+        sc = self._dist(e)
+        if e.type == 'unit':
+            sc -= 110
+        elif e.type == 'castle':
+            sc += 150
+        return sc
+
     def _find_target(self, sim):
         if self.confused:
             best, bd = None, float('inf')
@@ -727,21 +737,31 @@ class Unit:
             thr = next((e for e in sim.entities
                         if not e.dead and e.fid != self.fid and _dist(e.x, e.y, home.x, home.y) < 220), None)
             if thr:
+                self._locked_target = thr
                 return thr
+
+        # Find the best candidate
         best, bd = None, float('inf')
         for e in sim.entities:
             if e.fid == self.fid or e.dead:
                 continue
             if getattr(e, 'stealthed', False) and not getattr(e, 'forest_cover', False) and self._dist(e) > 44:
                 continue
-            sc = self._dist(e)
-            if e.type == 'unit':
-                sc -= 110
-            elif e.type == 'castle':
-                sc += 150
+            sc = self._target_score(e)
             if sc < bd:
                 bd, best = sc, e
-        return best
+
+        # Hysteresis: only switch away from the locked target if the new candidate
+        # is meaningfully better (20% lower score), preventing oscillation.
+        locked = self._locked_target
+        if locked is not None and not locked.dead and locked.fid != self.fid:
+            if best is None or self._target_score(best) < self._target_score(locked) * 0.80:
+                self._locked_target = best
+            # else stick with locked target
+        else:
+            self._locked_target = best
+
+        return self._locked_target
 
     def _nearest_enemy(self, r, sim):
         best, bd = None, r
