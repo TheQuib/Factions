@@ -554,6 +554,10 @@ class Unit:
             self.moved_dist = self.moved_dist * 0.92 + md
         self.prev_x, self.prev_y = self.x, self.y
 
+        # Mania — all units freeze in place
+        if sim.mania_t > 0:
+            return
+
         # Speed multiplier
         sp_mult = self.forest_slow
         if sim.blizzard_t > 0:

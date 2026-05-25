@@ -912,6 +912,7 @@ function loop(ts){
   }
   // Blizzard
   if(state.blizzard_t>0){ctx.fillStyle=`rgba(140,180,255,${.07*(state.blizzard_t/14)})`;ctx.fillRect(0,0,MAP_W,MAP_H);}
+  if(state.mania_t>0){const t=performance.now()*.002;ctx.fillStyle=`rgba(255,44,170,${.05+Math.sin(t)*.03})`;ctx.fillRect(0,0,MAP_W,MAP_H);}
 
   // Entities sorted by draw order
   const sortedE=[...(state.entities||[])].sort((a,b)=>{

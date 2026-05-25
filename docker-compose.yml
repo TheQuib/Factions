@@ -10,4 +10,6 @@ services:
       - ./sprites:/app/sprites
     environment:
       - AUTH_PASSWORD=super-secret-password
+      # Disaster event interval in game-seconds (default: 300 = every 5 minutes)
+      # - DISASTER_INTERVAL=300
     restart: unless-stopped

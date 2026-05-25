@@ -6,7 +6,7 @@ import math
 import random
 from .factions import (
     ALL_FACTIONS, STARTS, FTITAN, FBLDG,
-    TITAN_TIME, RESTART_DELAY,
+    TITAN_TIME, RESTART_DELAY, DISASTER_INTERVAL,
     REGION_NAMES, REGION_COLS, REGION_ROWS,
     MAP_W, MAP_H, pick_factions,
 )
@@ -24,6 +24,7 @@ class Simulation:
         self.blizzard_t     = 0.0
         self.wildfire_zones = []
         self.plague_cloud   = None
+        self.mania_t        = 0.0
         self.shake_x        = 0.0
         self.shake_y        = 0.0
         self.shake_t        = 0.0
@@ -31,7 +32,7 @@ class Simulation:
         self.disaster_col   = '#FF8800'
         self.disaster_t     = 0.0
         self.disaster_history = []
-        self.next_disaster_t  = 65.0 + random.random() * 50
+        self.next_disaster_t  = DISASTER_INTERVAL + random.random() * 60.0  # first event ~5 min in
 
         # Per-tick caches (rebuilt at start of tick)
         self.castle_cache      = {}
@@ -71,11 +72,12 @@ class Simulation:
         self.blizzard_t      = 0.0
         self.wildfire_zones  = []
         self.plague_cloud    = None
+        self.mania_t         = 0.0
         self.shake_x = self.shake_y = self.shake_t = 0.0
         self.disaster_msg    = ''
         self.disaster_t      = 0.0
         self.disaster_history = []
-        self.next_disaster_t = 65.0 + random.random() * 50
+        self.next_disaster_t = DISASTER_INTERVAL + random.random() * 60.0
         self.castle_cache    = {}
         self.faction_unit_count = {}
         self.tumor_list      = []
@@ -138,6 +140,8 @@ class Simulation:
         # Environmental effects
         if self.blizzard_t > 0:
             self.blizzard_t -= dt
+        if self.mania_t > 0:
+            self.mania_t -= dt
         if self.shake_t > 0:
             self.shake_t -= dt
             self.shake_x = (random.random() - 0.5) * 8
@@ -253,12 +257,25 @@ class Simulation:
             self.disaster_history.pop()
 
     def _trigger_disaster(self):
-        self.next_disaster_t = self.game_time + 65.0 + random.random() * 50
-        dtype = random.choice(['meteor', 'wildfire', 'earthquake', 'blizzard', 'plague', 'divine'])
+        # Don't stack persistent effects — if one is still active, check again in 30s
+        has_active = (self.blizzard_t > 0 or self.wildfire_zones or
+                      self.plague_cloud or self.mania_t > 0)
+        if has_active:
+            self.next_disaster_t = self.game_time + 30.0
+            return
 
-        if dtype == 'meteor':
-            self._announce_disaster('METEOR SHOWER', '#FF6633')
-            for _ in range(4):
+        self.next_disaster_t = self.game_time + (DISASTER_INTERVAL - 30.0) + random.random() * 60.0
+
+        dtype = random.choice([
+            'meteor_storm', 'wildfire',    'earthquake',  'blizzard',
+            'smog',         'divine_wrath','blood_rain',  'pestilence',
+            'madness',      'mania',       'midas_rain',  'warp_storm',
+            'blessings',    'frog_rain',
+        ])
+
+        if dtype == 'meteor_storm':
+            self._announce_disaster('METEOR STORM', '#FF6633')
+            for _ in range(5):
                 mx = 80 + random.random() * (MAP_W - 160)
                 my = 80 + random.random() * (MAP_H - 160)
                 self.events.append({'type': 'meteor', 'x': mx, 'y': my})
@@ -298,32 +315,91 @@ class Simulation:
             self._announce_disaster('BLIZZARD', '#88CCFF')
             self.blizzard_t = 14.0
 
-        elif dtype == 'plague':
-            self._announce_disaster('PLAGUE CLOUD', '#44BB44')
+        elif dtype == 'smog':
+            self._announce_disaster('SMOG CLOUD', '#99BB55')
             self.plague_cloud = {
                 'x': -60, 'y': 80 + random.random() * (MAP_H - 160),
-                'r': 90, 't': 20.0,
-                'vx': 180 + random.random() * 60,
+                'r': 110, 't': 25.0,
+                'vx': 150 + random.random() * 60,
                 'vy': (random.random() - 0.5) * 40,
             }
 
-        elif dtype == 'divine':
+        elif dtype == 'divine_wrath':
             self._announce_disaster('DIVINE WRATH', '#FFD700')
-            strongest = max(
-                (e for e in self.entities if e.type == 'castle' and not e.dead),
-                key=lambda e: e.hp + self.faction_unit_count.get(e.fid, 0) * 20,
-                default=None)
-            if strongest:
-                self.events.append({'type': 'beam', 'x1': strongest.x, 'y1': strongest.y - 200,
-                                    'x2': strongest.x, 'y2': strongest.y, 'color': '#FFD700', 'lw': 8})
-                self.events.append({'type': 'boom', 'x': strongest.x, 'y': strongest.y, 'r': 100, 'color': '#FFD700'})
-                strongest.take_damage(500, None)
+            targets = sorted(
+                (e for e in self.entities if e.type == 'unit' and not e.dead),
+                key=lambda e: e.hp, reverse=True)[:2]
+            for t in targets:
+                self.events.append({'type': 'beam', 'x1': t.x, 'y1': t.y - 300,
+                                    'x2': t.x, 'y2': t.y, 'color': '#FFD700', 'lw': 8})
+                self.events.append({'type': 'boom', 'x': t.x, 'y': t.y, 'r': 60, 'color': '#FFD700'})
+                t.hp = 0
+                t.dead = True
+
+        elif dtype == 'blood_rain':
+            self._announce_disaster('BLOOD RAIN', '#CC2244')
+            for e in self.entities:
+                if e.dead or e.type != 'unit':
+                    continue
+                e.hp = min(e.max_hp, e.hp + e.max_hp * 0.25)
+                e.healing = 0.8
+
+        elif dtype == 'pestilence':
+            self._announce_disaster('PESTILENCE', '#66AA22')
+            victims = random.sample(
+                [e for e in self.entities if e.type == 'unit' and not e.dead],
+                k=min(10, sum(1 for e in self.entities if e.type == 'unit' and not e.dead)))
+            for v in victims:
+                v.dots.append({'dmg': 5, 't': 30.0, 'src': 'pestilence'})
+                v.flash = 0.3
+
+        elif dtype == 'madness':
+            self._announce_disaster('MADNESS', '#AA44DD')
+            candidates = [e for e in self.entities if e.type == 'unit' and not e.dead]
+            for v in random.sample(candidates, k=min(15, len(candidates))):
+                v.confused   = True
+                v.confuse_t  = 25.0
+                v.flash      = 0.4
+
+        elif dtype == 'mania':
+            self._announce_disaster('MANIA', '#FF44AA')
+            self.mania_t = 20.0
+
+        elif dtype == 'midas_rain':
+            self._announce_disaster('MIDAS RAIN', '#FFD700')
+            for e in self.entities:
+                if e.type == 'castle' and not e.dead:
+                    e.gold += 400
+
+        elif dtype == 'warp_storm':
+            self._announce_disaster('WARP STORM', '#8844FF')
+            units = [e for e in self.entities if e.type == 'unit' and not e.dead]
+            positions = [(e.x, e.y) for e in units]
+            random.shuffle(positions)
+            for e, (nx, ny) in zip(units, positions):
+                self.events.append({'type': 'boom', 'x': e.x, 'y': e.y, 'r': 20, 'color': '#8844FF'})
+                e.x, e.y = nx, ny
+
+        elif dtype == 'blessings':
+            self._announce_disaster('BLESSINGS', '#AAFFAA')
+            candidates = [e for e in self.entities if e.type == 'unit' and not e.dead]
+            for v in random.sample(candidates, k=min(10, len(candidates))):
+                v.max_hp  += 40
+                v.hp       = v.max_hp
+                v.healing  = 1.2
+
+        elif dtype == 'frog_rain':
+            self._announce_disaster('FROG RAIN', '#55BB33')
+            for _ in range(10):
+                fx = 60 + random.random() * (MAP_W - 120)
+                fy = 60 + random.random() * (MAP_H - 120)
+                self.events.append({'type': 'boom', 'x': fx, 'y': fy, 'r': 40, 'color': '#55BB33'})
                 for e in self.entities:
                     if e.dead or e.type != 'unit':
                         continue
-                    if _dist(e.x, e.y, strongest.x, strongest.y) < 100:
-                        e.hp = max(0.0, e.hp - 80)
-                        e.flash = 0.4
+                    if _dist(e.x, e.y, fx, fy) < 40:
+                        e.hp = max(0.0, e.hp - 20)
+                        e.flash = 0.2
 
     # ── Region control ────────────────────────────────────────────────────────
 
@@ -358,6 +434,7 @@ class Simulation:
             'winner':          self.winner,
             'titans_spawned':  self.titans_spawned,
             'blizzard_t':      self.blizzard_t,
+            'mania_t':         self.mania_t,
             'wildfire_zones':  self.wildfire_zones,
             'plague_cloud':    self.plague_cloud,
             'shake_x':         self.shake_x,

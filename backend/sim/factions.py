@@ -1,3 +1,4 @@
+import os
 import random
 
 MAP_W = 1200
@@ -22,6 +23,9 @@ PANEL_GRACE     = 35
 TICK_INTERVAL   = 0.033    # real-seconds between simulation ticks (~30 Hz)
 GAME_SPEED      = 1.0    # game-seconds advanced per real-second (1:1 with real time)
 # Each tick: dt = GAME_SPEED * TICK_INTERVAL = 0.033 game-seconds
+
+# Disaster interval — override via DISASTER_INTERVAL env var (game-seconds, default 300 = 5 min)
+DISASTER_INTERVAL = float(os.environ.get('DISASTER_INTERVAL', 300))
 
 STARTS = [[160, 160], [600, 130], [1040, 160], [160, 660], [600, 690], [1040, 660]]
 
