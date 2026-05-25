@@ -161,6 +161,7 @@ async def sim_loop():
     global _last_save
     dt = TICK_INTERVAL * GAME_SPEED   # game-seconds per tick
     prev_winner = sim.winner
+    prev_generation = sim.generation
 
     while True:
         await asyncio.sleep(TICK_INTERVAL)
@@ -181,8 +182,13 @@ async def sim_loop():
 
         # Broadcast to clients if any are connected
         if _clients:
-            payload = json.dumps(sim.to_state(), default=str)
+            new_game = sim.generation != prev_generation
+            payload = json.dumps(
+                sim.to_state(include_terrain=new_game),
+                default=str,
+            )
             await _broadcast(payload)
+        prev_generation = sim.generation
 
 
 @app.on_event('startup')

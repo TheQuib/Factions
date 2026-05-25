@@ -16,6 +16,7 @@ from .entities import Castle, Unit, Building, ArrowTower, Titan, _dist
 
 class Simulation:
     def __init__(self):
+        self.generation     = 0   # incremented each init_game(); lets sim_loop detect a new match
         self.game_time      = 0.0
         self.game_over_timer = -1.0
         self.winner         = None
@@ -62,6 +63,7 @@ class Simulation:
     # ── Init / reset ──────────────────────────────────────────────────────────
 
     def init_game(self):
+        self.generation     += 1
         self.game_time       = 0.0
         self.game_over_timer = -1.0
         self.winner          = None
