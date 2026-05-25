@@ -714,7 +714,8 @@ class Unit:
             return best
         if self.heal:
             hurt = next((e for e in sim.entities
-                         if e.fid == self.fid and not e.dead and e.hp < getattr(e, 'max_hp', e.hp) and e is not self), None)
+                         if e.fid == self.fid and not e.dead and e.type == 'unit'
+                         and e.hp < getattr(e, 'max_hp', e.hp) and e is not self), None)
             if hurt:
                 return hurt
         home = sim.castle_cache.get(self.fid)
