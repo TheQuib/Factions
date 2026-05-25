@@ -641,18 +641,20 @@ function drawMap(){
 
   // Region control overlay
   if(state&&state.regions){
+    // Pass 1: faction colour fill + border for all regions
     for(const reg of state.regions){
-      if(!reg.controlling_fid)continue;
-      const f=factions[reg.controlling_fid];
-      if(!f)continue;
-      const [r,g,b]=hexToRgb(f.color);
-      ctx.fillStyle=`rgba(${r},${g},${b},${0.06*reg.control_pct})`;
-      ctx.fillRect(reg.x,reg.y,reg.w,reg.h);
-      // Region name
-      ctx.fillStyle=`rgba(${r},${g},${b},${0.35*reg.control_pct})`;
-      ctx.font='8px monospace';ctx.textAlign='center';
-      ctx.fillText(reg.name,reg.x+reg.w/2,reg.y+reg.h/2);
-      ctx.textAlign='left';
+      if(reg.controlling_fid){
+        const f=factions[reg.controlling_fid];
+        if(f){
+          const [r,g,b]=hexToRgb(f.color);
+          ctx.fillStyle=`rgba(${r},${g},${b},${0.08*reg.control_pct})`;
+          ctx.fillRect(reg.x,reg.y,reg.w,reg.h);
+          ctx.strokeStyle=`rgba(${r},${g},${b},${0.25*reg.control_pct})`;
+        }
+      } else {
+        ctx.strokeStyle='rgba(255,255,255,0.07)';
+      }
+      ctx.lineWidth=1;ctx.strokeRect(reg.x,reg.y,reg.w,reg.h);
     }
   }
 
@@ -707,6 +709,26 @@ function drawMap(){
   for(let i=0;i<sk.length;i++)for(let j=i+1;j<sk.length;j++){
     const a=factions[sk[i]],b=factions[sk[j]];
     ctx.beginPath();ctx.moveTo(a.cx,a.cy);ctx.lineTo(b.cx,b.cy);ctx.stroke();
+  }
+  // Region name labels — drawn last so they sit above forests, rivers, and roads
+  if(state&&state.regions){
+    ctx.font='bold 11px monospace';ctx.textAlign='center';
+    for(const reg of state.regions){
+      const cx=reg.x+reg.w/2, cy=reg.y+reg.h/2;
+      const tw=ctx.measureText(reg.name).width;
+      const ph=7, pw=8;
+      ctx.fillStyle='rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.roundRect(cx-tw/2-pw,cy-ph-1,tw+pw*2,ph*2+2,4);
+      ctx.fill();
+      if(reg.controlling_fid&&factions[reg.controlling_fid]){
+        ctx.fillStyle=factions[reg.controlling_fid].color;
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.35)';
+      }
+      ctx.fillText(reg.name,cx,cy+ph-2);
+    }
+    ctx.textAlign='left';
   }
 }
 

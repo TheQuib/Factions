@@ -90,7 +90,15 @@ def terrain_speed(x, y, rivers, bridges, river_bonus=False):
 
 
 def get_waypoint(x, y, tx, ty, rivers, bridges):
-    """Route around the first river that crosses the direct path."""
+    """Route around the first river that crosses the direct path.
+
+    Two-phase approach to avoid diagonal river-edge clipping:
+    - When far from the river (> ALIGN_DIST), slide laterally to line up
+      with the bridge first, keeping the current perpendicular coordinate.
+    - When close, aim straight through the bridge center.
+    """
+    ALIGN_DIST = 60  # px from river at which lateral alignment kicks in
+
     for r in rivers:
         if r['horiz']:
             min_y, max_y = min(y, ty), max(y, ty)
@@ -102,7 +110,12 @@ def get_waypoint(x, y, tx, ty, rivers, bridges):
                         if d < nd:
                             nd, nb = d, b
                 if nb:
-                    return nb['pos'], r['pos']
+                    dist_to_river = abs(y - r['pos'])
+                    if dist_to_river > ALIGN_DIST:
+                        # Slide laterally to align with the bridge, don't cross yet
+                        return nb['pos'], y
+                    else:
+                        return nb['pos'], r['pos']
         else:
             min_x, max_x = min(x, tx), max(x, tx)
             if min_x <= r['pos'] <= max_x:
@@ -113,7 +126,12 @@ def get_waypoint(x, y, tx, ty, rivers, bridges):
                         if d < nd:
                             nd, nb = d, b
                 if nb:
-                    return r['pos'], nb['pos']
+                    dist_to_river = abs(x - r['pos'])
+                    if dist_to_river > ALIGN_DIST:
+                        # Slide laterally to align with the bridge, don't cross yet
+                        return x, nb['pos']
+                    else:
+                        return r['pos'], nb['pos']
     return tx, ty
 
 

@@ -154,15 +154,16 @@ FTITAN = {
     'teal': 'elem_water', 'crim': 'elem_fire', 'slate': 'elem_earth', 'rose': 'chaos_titan',
 }
 
-# Region grid: 5 columns × 4 rows = 20 named regions
+# Region grid: 3 columns × 3 rows = 9 regions
+# Layout mirrors the 6 faction starting positions (corners + top/bottom centre)
+# with 3 contested midfield cells forming the centre row.
 REGION_NAMES = [
-    'Ironmoor',   'Crystalfen', 'Ashvale',    'Sundrift',   'Stonehaven',
-    'Duskwood',   'Saltmarsh',  'Thornfield', 'Riverkeep',  'Frostholm',
-    'Grimgate',   'Embervast',  'Shadowmere', 'Goldcrest',  'Bleakwatch',
-    'Deepwatch',  'Cinderfall', 'Mudholm',    'Highwater',  'Ruinpass',
+    'Ironmoor',    'Crystalfen',   'Ashvale',
+    'Thornfield',  'The Heartlands', 'Shadowmere',
+    'Grimgate',    'Saltmarsh',    'Frostholm',
 ]
-REGION_COLS = 5
-REGION_ROWS = 4
+REGION_COLS = 3
+REGION_ROWS = 3
 
 
 def pick_factions():
