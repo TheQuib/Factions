@@ -758,7 +758,8 @@ function drawHUD(dt){
     const k=rankedKeys[pi];
     const targetY=PANEL_START+pi*PANEL_H;
     if(panelAnimY[k]===undefined)panelAnimY[k]=targetY;
-    panelAnimY[k]+=(targetY-panelAnimY[k])*Math.min(1,8*dt);
+    if(gameTime>=30)panelAnimY[k]+=(targetY-panelAnimY[k])*Math.min(1,8*dt);
+    else panelAnimY[k]=targetY;
     const y=panelAnimY[k];
     const f=factions[k]||{};
     const castle=castles[k];
