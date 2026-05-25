@@ -27,14 +27,38 @@ def gen_terrain():
         riv = {'horiz': horiz, 'pos': pos, 'w': 26}
         rivers.append(riv)
         for _ in range(2):
-            bpos, ba = None, 0
-            while ba < 30:
-                bpos = (80 + random.random() * (MAP_W - 160) if horiz
-                        else 80 + random.random() * (MAP_H - 160))
-                if not any(b['riv'] is riv and abs(b['pos'] - bpos) < 200 for b in bridges):
-                    break
-                ba += 1
-            bridges.append({'riv': riv, 'pos': bpos})
+            bpos = None
+            for _ in range(60):
+                candidate = (80 + random.random() * (MAP_W - 160) if horiz
+                             else 80 + random.random() * (MAP_H - 160))
+
+                # #32: must be 200px from any other bridge on the same river
+                if any(b['riv'] is riv and abs(b['pos'] - candidate) < 200
+                       for b in bridges):
+                    continue
+
+                # #33: must not land on a crossing with a perpendicular river
+                at_crossing = any(
+                    other['horiz'] != horiz and abs(candidate - other['pos']) < 60
+                    for other in rivers if other is not riv
+                )
+                if at_crossing:
+                    continue
+
+                # #32: must be 120px (2-D) from any bridge on a different river
+                def _bxy(b):
+                    return (b['pos'], b['riv']['pos']) if b['riv']['horiz'] \
+                           else (b['riv']['pos'], b['pos'])
+                cxy = (candidate, riv['pos']) if horiz else (riv['pos'], candidate)
+                if any(math.hypot(cxy[0] - _bxy(b)[0], cxy[1] - _bxy(b)[1]) < 120
+                       for b in bridges if b['riv'] is not riv):
+                    continue
+
+                bpos = candidate
+                break
+
+            if bpos is not None:
+                bridges.append({'riv': riv, 'pos': bpos})
 
     n_for = 4 + random.randint(0, 2)
     attempts = 0
