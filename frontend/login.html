@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Faction Wars</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a0a;display:flex;justify-content:center;align-items:center;
+     min-height:100vh;font-family:'Courier New',monospace;color:#888;}
+form{border:1px solid #2a2a2a;padding:36px 44px;background:#111;}
+h2{color:#555;font-size:12px;letter-spacing:5px;margin-bottom:28px;}
+input[type=password]{
+  display:block;width:100%;background:#0a0a0a;border:1px solid #3a3a3a;
+  color:#ccc;font:13px 'Courier New',monospace;padding:10px 14px;margin-bottom:16px;outline:none;
+}
+input[type=password]:focus{border-color:#777;}
+button{
+  width:100%;background:#0a0a0a;border:1px solid #555;color:#999;
+  font:bold 11px 'Courier New',monospace;padding:10px;cursor:pointer;letter-spacing:3px;
+  transition:color .15s,border-color .15s;
+}
+button:hover{color:#eee;border-color:#aaa;}
+.err{color:#cc4444;font-size:10px;letter-spacing:1px;margin-bottom:14px;}
+</style></head>
+<body>
+<form method="POST" action="/login">
+<h2>FACTION WARS</h2>
+<input type="password" name="password" placeholder="password" autofocus>
+{error}
+<button type="submit">ENTER</button>
+</form>
+</body></html>

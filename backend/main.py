@@ -14,6 +14,7 @@ Auth:
   bypass the password (e.g. "192.168.1.0/24,10.0.0.1").
 """
 import asyncio
+import hashlib
 import hmac
 import ipaddress
 import json
@@ -35,10 +36,21 @@ ROOT         = Path(__file__).parent.parent
 FRONTEND_DIR = ROOT / 'frontend'
 SPRITES_DIR  = ROOT / 'sprites'
 
+# ── Frontend files ────────────────────────────────────────────────────────────
+# Hash of index.html at startup — changes when a new build is deployed.
+# Clients poll /api/version and prompt a refresh if it differs from what they loaded.
+_FRONTEND_VERSION = hashlib.md5((FRONTEND_DIR / 'index.html').read_bytes()).hexdigest()[:12]
+_LOGIN_PAGE = (FRONTEND_DIR / 'login.html').read_text()
+
 # ── Auth config ───────────────────────────────────────────────────────────────
 _AUTH_PASSWORD = os.environ.get('AUTH_PASSWORD', '')
 _SESSION_COOKIE = 'factions_session'
-_SESSION_TOKEN  = secrets.token_hex(32)  # new token each server restart
+# Derived from the password so sessions survive server restarts/redeploys.
+# Falls back to a random token when no password is set (auth is disabled anyway).
+_SESSION_TOKEN  = (
+    hashlib.sha256(f'factions-session:{_AUTH_PASSWORD}'.encode()).hexdigest()
+    if _AUTH_PASSWORD else secrets.token_hex(32)
+)
 
 _whitelist_nets: list = []
 for _raw in os.environ.get('AUTH_WHITELIST', '').split(','):
@@ -80,39 +92,6 @@ def _authenticated(request: Request) -> bool:
         return True
     return request.cookies.get(_SESSION_COOKIE) == _SESSION_TOKEN
 
-
-_LOGIN_PAGE = """\
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><title>Faction Wars</title>
-<style>
-*{{margin:0;padding:0;box-sizing:border-box;}}
-body{{background:#0a0a0a;display:flex;justify-content:center;align-items:center;
-     min-height:100vh;font-family:'Courier New',monospace;color:#888;}}
-form{{border:1px solid #2a2a2a;padding:36px 44px;background:#111;}}
-h2{{color:#555;font-size:12px;letter-spacing:5px;margin-bottom:28px;}}
-input[type=password]{{
-  display:block;width:100%;background:#0a0a0a;border:1px solid #3a3a3a;
-  color:#ccc;font:13px 'Courier New',monospace;padding:10px 14px;margin-bottom:16px;outline:none;
-}}
-input[type=password]:focus{{border-color:#777;}}
-button{{
-  width:100%;background:#0a0a0a;border:1px solid #555;color:#999;
-  font:bold 11px 'Courier New',monospace;padding:10px;cursor:pointer;letter-spacing:3px;
-  transition:color .15s,border-color .15s;
-}}
-button:hover{{color:#eee;border-color:#aaa;}}
-.err{{color:#cc4444;font-size:10px;letter-spacing:1px;margin-bottom:14px;}}
-</style></head>
-<body>
-<form method="POST" action="/login">
-<h2>FACTION WARS</h2>
-<input type="password" name="password" placeholder="password" autofocus>
-{error}
-<button type="submit">ENTER</button>
-</form>
-</body></html>
-"""
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(title='Faction Wars')
@@ -222,6 +201,12 @@ async def index():
 async def api_state():
     """Full state including terrain — used by clients on first connect."""
     return JSONResponse(sim.to_state(include_terrain=True))
+
+
+@app.get('/api/version')
+async def api_version():
+    """Returns a short hash of the frontend bundle. Clients poll this to detect stale pages."""
+    return Response(content=_FRONTEND_VERSION, media_type='text/plain')
 
 
 @app.get('/api/leaderboard')

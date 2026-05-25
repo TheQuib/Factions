@@ -22,9 +22,18 @@ canvas{image-rendering:pixelated;box-shadow:0 0 40px rgba(0,0,0,0.9);}
 .ctrl-btn:hover{color:#eee;border-color:#aaa;background:rgba(30,30,30,.95);}
 .ctrl-btn.armed{color:#FF4444;border-color:#FF6644;background:rgba(40,8,8,.95);animation:arm-pulse .5s infinite alternate;}
 @keyframes arm-pulse{from{opacity:.7}to{opacity:1}}
+#update-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:rgba(20,20,20,.96);border-bottom:1px solid #555;
+  color:#ccc;font:12px monospace;padding:7px 16px;
+  display:none;align-items:center;gap:12px;}
+#update-banner span{flex:1;}
+#update-banner button{background:rgba(255,255,255,.1);border:1px solid #777;
+  color:#eee;font:11px monospace;padding:3px 10px;cursor:pointer;border-radius:2px;}
+#update-banner button:hover{background:rgba(255,255,255,.2);}
 </style>
 </head>
 <body>
+<div id="update-banner"><span>⟳ A new version is available.</span><button onclick="location.reload()">Refresh</button></div>
 <canvas id="c"></canvas>
 <div id="status">connecting…</div>
 <div id="controls">
@@ -32,6 +41,19 @@ canvas{image-rendering:pixelated;box-shadow:0 0 40px rgba(0,0,0,0.9);}
 </div>
 <script>
 'use strict';
+
+// ── Version polling ───────────────────────────────────────────────────────────
+(async()=>{
+  try{
+    const initial=await fetch('/api/version').then(r=>r.text());
+    setInterval(async()=>{
+      try{
+        const current=await fetch('/api/version').then(r=>r.text());
+        if(current!==initial)document.getElementById('update-banner').style.display='flex';
+      }catch(_){}
+    },60000);
+  }catch(_){}
+})();
 
 // ── Canvas setup ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById('c');
