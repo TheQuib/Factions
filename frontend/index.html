@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Faction Wars — Live</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -30,13 +31,17 @@ canvas{image-rendering:pixelated;box-shadow:0 0 40px rgba(0,0,0,0.9);}
 #update-banner button{background:rgba(255,255,255,.1);border:1px solid #777;
   color:#eee;font:11px monospace;padding:3px 10px;cursor:pointer;border-radius:2px;}
 #update-banner button:hover{background:rgba(255,255,255,.2);}
+#map-scroll{position:fixed;top:0;left:0;width:100vw;height:100vh;
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  display:flex;align-items:center;}
 </style>
 </head>
 <body>
 <div id="update-banner"><span>⟳ A new version is available.</span><button onclick="location.reload()">Refresh</button></div>
-<canvas id="c"></canvas>
+<div id="map-scroll"><canvas id="c"></canvas></div>
 <div id="status">connecting…</div>
 <div id="controls">
+  <button class="ctrl-btn" id="btnHud">◀ HUD</button>
   <button class="ctrl-btn" id="btnReset">⟳ RESET</button>
 </div>
 <script>
@@ -59,16 +64,26 @@ canvas{image-rendering:pixelated;box-shadow:0 0 40px rgba(0,0,0,0.9);}
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const MAP_W  = 1200, MAP_H = 820, UI = 380;
-canvas.width  = MAP_W + UI;
-canvas.height = MAP_H;
-ctx.imageSmoothingEnabled = false; // keep pixel art sprites crisp when scaled up
+
+let hudOpen = window.innerWidth >= 900;
 
 function scaleCanvas() {
-  const sc = Math.min(window.innerWidth / (MAP_W + UI), window.innerHeight / MAP_H);
-  canvas.style.width  = ((MAP_W + UI) * sc) + 'px';
-  canvas.style.height = (MAP_H * sc) + 'px';
+  const sc = window.innerHeight / MAP_H;
+  canvas.style.width  = (canvas.width * sc) + 'px';
+  canvas.style.height = window.innerHeight + 'px';
 }
-scaleCanvas();
+
+function setHudOpen(open) {
+  hudOpen = open;
+  canvas.width  = open ? MAP_W + UI : MAP_W;
+  canvas.height = MAP_H;
+  ctx.imageSmoothingEnabled = false;
+  scaleCanvas();
+  const btn = document.getElementById('btnHud');
+  if (btn) btn.textContent = open ? '◀ HUD' : 'HUD ▶';
+}
+
+setHudOpen(hudOpen);
 window.addEventListener('resize', scaleCanvas);
 
 // ── Sprite loader ─────────────────────────────────────────────────────────────
@@ -972,7 +987,7 @@ function loop(ts){
   drawParticles();
   ctx.fillStyle=VIG;ctx.fillRect(0,0,MAP_W,MAP_H);
   ctx.restore();
-  drawHUD(dt);
+  if (hudOpen) drawHUD(dt);
   if((state.game_over_timer||0)>0)drawWinScreen();
 
   requestAnimationFrame(loop);
@@ -980,6 +995,8 @@ function loop(ts){
 requestAnimationFrame(loop);
 
 // ── Control buttons ───────────────────────────────────────────────────────────
+document.getElementById('btnHud').addEventListener('click', () => setHudOpen(!hudOpen));
+
 (function(){
   const btn = document.getElementById('btnReset');
   let armed = false, armTimer = null;
