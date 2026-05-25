@@ -61,6 +61,7 @@ const ctx    = canvas.getContext('2d');
 const MAP_W  = 1200, MAP_H = 820, UI = 380;
 canvas.width  = MAP_W + UI;
 canvas.height = MAP_H;
+ctx.imageSmoothingEnabled = false; // keep pixel art sprites crisp when scaled up
 
 function scaleCanvas() {
   const sc = Math.min(window.innerWidth / (MAP_W + UI), window.innerHeight / MAP_H);
@@ -74,10 +75,10 @@ window.addEventListener('resize', scaleCanvas);
 // Drop a PNG named after any unit type or building type into /sprites/ and it
 // will be used automatically; if missing, the procedural pixel-art is drawn instead.
 const SPRITES = {};
-const SPRITE_UNIT_SIZE   = 32;  // px on canvas for unit sprites
-const SPRITE_BLDG_SIZE   = 32;
-const SPRITE_CASTLE_SIZE = 64;
-const SPRITE_TITAN_SIZE  = 64;
+const SPRITE_UNIT_SIZE   = 48;  // px on canvas for unit sprites (1.5× native 32px)
+const SPRITE_BLDG_SIZE   = 48;
+const SPRITE_CASTLE_SIZE = 96;
+const SPRITE_TITAN_SIZE  = 96;
 
 const SPRITE_KEYS = [
   // unit types
@@ -886,6 +887,7 @@ const panelAnimY = {}; // animated Y positions for leaderboard panels, keyed by 
 function loop(ts){
   const dt = Math.min((ts - lastTs) / 1000, 0.08);
   lastTs = ts;
+  ctx.imageSmoothingEnabled = false; // re-assert each frame; save/restore can reset it
   updateParticles(dt);
 
   if(!state){requestAnimationFrame(loop);return;}

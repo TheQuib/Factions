@@ -113,7 +113,7 @@ async def auth_middleware(request: Request, call_next):
 
 @app.get('/login')
 async def login_get():
-    return HTMLResponse(_LOGIN_PAGE.format(error=''))
+    return HTMLResponse(_LOGIN_PAGE.replace('{error}', ''))
 
 
 @app.post('/login')
@@ -123,7 +123,7 @@ async def login_post(password: str = Form(...)):
         resp.set_cookie(_SESSION_COOKIE, _SESSION_TOKEN, httponly=True, samesite='lax')
         return resp
     return HTMLResponse(
-        _LOGIN_PAGE.format(error='<p class="err">INCORRECT PASSWORD</p>'),
+        _LOGIN_PAGE.replace('{error}', '<p class="err">INCORRECT PASSWORD</p>'),
         status_code=401,
     )
 

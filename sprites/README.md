@@ -17,16 +17,17 @@ Drop PNG files here to override the procedural pixel-art drawing.
 
 ## Sizes (recommended)
 
-| Target       | Canvas draw size |
-|--------------|-----------------|
-| Units        | 32 × 32 px       |
-| Buildings    | 32 × 32 px       |
-| Castles      | 64 × 64 px       |
-| Titans       | 64 × 64 px       |
+| Target       | Source PNG size | Canvas draw size |
+|--------------|-----------------|-----------------|
+| Units        | 32 × 32 px      | 64 × 64 px (2×) |
+| Buildings    | 32 × 32 px      | 64 × 64 px (2×) |
+| Castles      | 64 × 64 px      | 128 × 128 px (2×) |
+| Titans       | 64 × 64 px      | 128 × 128 px (2×) |
 
-Larger source images are fine — they'll be scaled down. Keep backgrounds
-transparent (RGBA PNG). The flash highlight and HP bar are drawn on top by
-the engine.
+Sprites are rendered at 2× their source size for crisp pixel art scaling.
+Image smoothing is disabled on the canvas, so sprites stay sharp.
+Keep backgrounds transparent (RGBA PNG). The flash highlight and HP bar
+are drawn on top by the engine.
 
 ## Fallback
 
