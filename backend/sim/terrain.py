@@ -121,7 +121,8 @@ def get_waypoint(x, y, tx, ty, rivers, bridges):
       with the bridge first, keeping the current perpendicular coordinate.
     - When close, aim straight through the bridge center.
     """
-    ALIGN_DIST = 60  # px from river at which lateral alignment kicks in
+    ALIGN_DIST  = 60  # start lateral alignment this far from the river
+    ALIGNED_TOL = 20  # consider already-aligned if within this many px of bridge axis
 
     for r in rivers:
         if r['horiz']:
@@ -134,12 +135,13 @@ def get_waypoint(x, y, tx, ty, rivers, bridges):
                         if d < nd:
                             nd, nb = d, b
                 if nb:
-                    dist_to_river = abs(y - r['pos'])
-                    if dist_to_river > ALIGN_DIST:
-                        # Slide laterally to align with the bridge, don't cross yet
-                        return nb['pos'], y
+                    bx = nb['pos']
+                    dist_to_river  = abs(y - r['pos'])
+                    already_aligned = abs(x - bx) <= ALIGNED_TOL
+                    if dist_to_river > ALIGN_DIST and not already_aligned:
+                        return bx, y   # slide laterally first
                     else:
-                        return nb['pos'], r['pos']
+                        return bx, r['pos']  # aligned or close — head straight through
         else:
             min_x, max_x = min(x, tx), max(x, tx)
             if min_x <= r['pos'] <= max_x:
@@ -150,12 +152,13 @@ def get_waypoint(x, y, tx, ty, rivers, bridges):
                         if d < nd:
                             nd, nb = d, b
                 if nb:
-                    dist_to_river = abs(x - r['pos'])
-                    if dist_to_river > ALIGN_DIST:
-                        # Slide laterally to align with the bridge, don't cross yet
-                        return x, nb['pos']
+                    by = nb['pos']
+                    dist_to_river   = abs(x - r['pos'])
+                    already_aligned = abs(y - by) <= ALIGNED_TOL
+                    if dist_to_river > ALIGN_DIST and not already_aligned:
+                        return x, by   # slide laterally first
                     else:
-                        return r['pos'], nb['pos']
+                        return r['pos'], by  # aligned or close — head straight through
     return tx, ty
 
 
