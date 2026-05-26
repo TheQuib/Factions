@@ -1,69 +1,74 @@
 # Factions
 
-Simple screensaver-style interactive Factions RTS. Runs in Docker. Made to run in Linux.
+A screensaver-style interactive RTS simulation. Factions battle each other autonomously across procedurally-named maps, with results rolling up through a world map, solar system, and galactic hierarchy. Watch the chaos unfold — or dig into the wiki to understand what's actually happening.
 
-<br>
+> **New here?** Check out the [Wiki](https://github.com/TheQuib/Factions/wiki) for full documentation on factions, mechanics, and how to set things up.
 
-# Running Factions
-It is recommended to run Factions as a container for ease of use and portability, but you can run locally using the included `run.sh` script.
+---
 
-## Build locally
-### Requirements
- - Python 3.12+
+## Quick Start
 
-### Install prerequisites
-```Bash
-python3 -m pip install requirements.txt
-```
+### Docker (Recommended)
 
-### Create database file
-Factions stores data in a single SQLite file. Create it in the project parent directory with:
-```Bash
-touch factions.db
-```
+**Requirements:** [Docker Engine](https://docs.docker.com/engine/install/)
 
-### Run server
-```Bash
-./run.sh
-```
-
-Note, the default port is `8000`, you can specify your preferred port as the first positional argument. Example:
-
-```Bash
-./run.sh 8001
-```
-
-<br>
-
-## Docker [RECOMMENDED]
-First, you'll need to install the Docker engine on your computer.
-
-Follow [Docker's Instructions for your system](https://docs.docker.com/engine/install/) to install.
-
-## Create database file
-Factions stores data in a single SQLite file. Create it in the project parent directory with:
-```Bash
-touch factions.db
-```
-
-## Run the container
-
-Clone this repository to your computer:
-```Bash
+```bash
 git clone https://github.com/TheQuib/Factions
 cd Factions
-```
-
-Run the container:
-```Bash
+touch factions.db
 docker compose up -d
 ```
 
-## Build locally
+Then open your browser to [http://localhost:8000](http://localhost:8000).
 
-If you prefer to build the container locally, the Dockerfile is included in this repo.
+To build the image locally instead of pulling it:
 
-Build and run the container:
-```Bash
+```bash
 docker compose up -d --build
-````
+```
+
+### Running Locally
+
+**Requirements:** Python 3.12+
+
+```bash
+pip install -r requirements.txt
+touch factions.db
+./run.sh           # default port 8000
+./run.sh 8001      # custom port
+```
+
+---
+
+## What's in the Repo
+
+| Path | Description |
+|------|-------------|
+| `backend/` | FastAPI server, game logic, WebSocket handling |
+| `frontend/` | Browser-based game UI |
+| `sprites/` | Pixel art assets for units and buildings |
+| `factions.db.example` | Example SQLite database schema |
+| `docker-compose.yml` | Container orchestration |
+| `Dockerfile` | Container build definition |
+| `Ideas.txt` | Design scratchpad and roadmap |
+
+---
+
+## Documentation
+
+Full documentation lives in the [Wiki](https://github.com/TheQuib/Factions/wiki):
+
+- [Home](https://github.com/TheQuib/Factions/wiki/Home) — Overview and navigation
+- [Setup & Installation](https://github.com/TheQuib/Factions/wiki/Setup-and-Installation) — Docker and local setup
+- [Game Mechanics](https://github.com/TheQuib/Factions/wiki/Game-Mechanics) — How battles, regions, heroes, and weather work
+- [Factions](https://github.com/TheQuib/Factions/wiki/Factions) — All factions and their units/buildings
+- [Planned Features](https://github.com/TheQuib/Factions/Issues) — What's coming next, tracked in the repository's issues
+
+---
+
+## Tech Stack
+
+- **Backend:** Python 3.12, FastAPI, Uvicorn, WebSockets
+- **Frontend:** HTML / JavaScript
+- **Database:** SQLite
+- **Infrastructure:** Docker, GitHub Actions
