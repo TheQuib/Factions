@@ -1,9 +1,17 @@
 """
-Main simulation class. Owns all game state and advances it one dt step at a time.
-The asyncio server calls tick() on a timer; between ticks the state is broadcast to clients.
+Main simulation class — updated for all new factions.
+New per-tick caches added:
+  faction_blood_fountain_count  — Sanguine Supplicants HP buff
+  faction_amphitheater_count    — Celestial Choir stat buff
+  faction_fighting_pit_count    — Goblin Gang dmg buff
+  faction_quarry_count          — Bulwark Bastion structure HP buff
+  faction_horseman_ever_bought  — Horsemen sequential purchase tracking
+  apoc_monument_counts          — which Horseman monuments are active
+Global debuff pass for Horsemen monuments applied each tick.
 """
 import math
 import random
+from collections import deque
 from .factions import (
     ALL_FACTIONS, STARTS, FTITAN, FBLDG,
     TITAN_TIME, RESTART_DELAY, DISASTER_INTERVAL,
@@ -12,59 +20,22 @@ from .factions import (
 )
 from .terrain import gen_terrain, terrain_to_serializable, in_river
 from .entities import Castle, Unit, Building, ArrowTower, Titan, _dist
+from .spatial import SpatialGrid
+
+_DISASTER_HISTORY_MAX = 4
+
+# Monument btype → required horseman utype
+_MONUMENT_REQUIREMENTS = {
+    'marble_monument':  'pestilence',
+    'crimson_cenotaph': 'war_horseman',
+    'onyx_obelisk':     'famine',
+    'alabaster_angel':  'death_horseman',
+}
 
 
 class Simulation:
     def __init__(self):
-        self.generation     = 0   # incremented each init_game(); lets sim_loop detect a new match
-        self.game_time      = 0.0
-        self.game_over_timer = -1.0
-        self.winner         = None
-        self.titans_spawned = False
-        self.blizzard_t     = 0.0
-        self.wildfire_zones = []
-        self.plague_cloud   = None
-        self.mania_t        = 0.0
-        self.shake_x        = 0.0
-        self.shake_y        = 0.0
-        self.shake_t        = 0.0
-        self.disaster_msg   = ''
-        self.disaster_col   = '#FF8800'
-        self.disaster_t     = 0.0
-        self.disaster_history = []
-        self.next_disaster_t  = DISASTER_INTERVAL + random.random() * 60.0  # first event ~5 min in
-
-        # Per-tick caches (rebuilt at start of tick)
-        self.castle_cache      = {}
-        self.faction_unit_count = {}
-        self.tumor_list        = []
-        self.rage_totem_list   = []
-        self.burn_aura_t       = 0.0
-
-        # Events emitted this tick — clients render particles for these
-        self.events = []
-
-        # Terrain and faction data
-        self.faction_keys = []
-        self.factions     = {}
-        self.rivers       = []
-        self.bridges      = []
-        self.forests      = []
-        self.terrain_serial = {}
-
-        # Entity list
-        self.entities = []
-
-        # Region control — recomputed every ~10s
-        self.regions = []
-        self.region_update_t = 0.0
-
-        self.init_game()
-
-    # ── Init / reset ──────────────────────────────────────────────────────────
-
-    def init_game(self):
-        self.generation     += 1
+        self.generation      = 0
         self.game_time       = 0.0
         self.game_over_timer = -1.0
         self.winner          = None
@@ -73,18 +44,94 @@ class Simulation:
         self.wildfire_zones  = []
         self.plague_cloud    = None
         self.mania_t         = 0.0
-        self.shake_x = self.shake_y = self.shake_t = 0.0
+        self.shake_x         = 0.0
+        self.shake_y         = 0.0
+        self.shake_t         = 0.0
         self.disaster_msg    = ''
+        self.disaster_col    = '#FF8800'
         self.disaster_t      = 0.0
-        self.disaster_history = []
+        self.disaster_history: deque = deque(maxlen=_DISASTER_HISTORY_MAX)
         self.next_disaster_t = DISASTER_INTERVAL + random.random() * 60.0
-        self.castle_cache    = {}
-        self.faction_unit_count = {}
-        self.tumor_list      = []
-        self.rage_totem_list = []
-        self.burn_aura_t     = 0.0
-        self.events          = []
+
+        # Per-tick caches
+        self.castle_cache              = {}
+        self.faction_unit_count        = {}
+        self.faction_inc_bldg_count    = {}
+        self.faction_def_bldg_count    = {}
+        self.faction_sp_bldg_count     = {}
+        self.faction_lib_count         = {}
+        self.faction_mine_count        = {}
+        self.faction_blacksmithy_count = {}
+        self.faction_quarry_count      = {}
+        self.faction_altar_count       = {}
+        self.faction_lab_count         = {}
+        self.faction_blood_fountain_count = {}
+        self.faction_amphitheater_count   = {}
+        self.faction_fighting_pit_count   = {}
+        self.tumor_list                = []
+        self.rage_totem_list           = []
+        self.burn_aura_t               = 0.0
+
+        # Horsemen tracking
+        self.faction_horseman_ever_bought: dict[str, set] = {}
+
+        self.grid = SpatialGrid(MAP_W, MAP_H)
+        self.events = []
+
+        self.faction_keys   = []
+        self.factions       = {}
+        self.rivers         = []
+        self.bridges        = []
+        self.forests        = []
+        self.terrain_serial = {}
+
+        self.entities = []
+
+        self.regions         = []
         self.region_update_t = 0.0
+
+        self.init_game()
+
+    # ── Init / reset ──────────────────────────────────────────────────────────
+
+    def init_game(self):
+        self.generation      += 1
+        self.game_time        = 0.0
+        self.game_over_timer  = -1.0
+        self.winner           = None
+        self.titans_spawned   = False
+        self.blizzard_t       = 0.0
+        self.wildfire_zones   = []
+        self.plague_cloud     = None
+        self.mania_t          = 0.0
+        self.shake_x = self.shake_y = self.shake_t = 0.0
+        self.disaster_msg     = ''
+        self.disaster_t       = 0.0
+        self.disaster_history = deque(maxlen=_DISASTER_HISTORY_MAX)
+        self.next_disaster_t  = DISASTER_INTERVAL + random.random() * 60.0
+
+        self.castle_cache              = {}
+        self.faction_unit_count        = {}
+        self.faction_inc_bldg_count    = {}
+        self.faction_def_bldg_count    = {}
+        self.faction_sp_bldg_count     = {}
+        self.faction_lib_count         = {}
+        self.faction_mine_count        = {}
+        self.faction_blacksmithy_count = {}
+        self.faction_quarry_count      = {}
+        self.faction_altar_count       = {}
+        self.faction_lab_count         = {}
+        self.faction_blood_fountain_count = {}
+        self.faction_amphitheater_count   = {}
+        self.faction_fighting_pit_count   = {}
+        self.tumor_list       = []
+        self.rage_totem_list  = []
+        self.burn_aura_t      = 0.0
+
+        self.faction_horseman_ever_bought = {}
+
+        self.events           = []
+        self.region_update_t  = 0.0
 
         self.faction_keys, self.factions = pick_factions()
         self.rivers, self.bridges, self.forests = gen_terrain()
@@ -132,12 +179,10 @@ class Simulation:
 
         self.game_time += dt
 
-        # Disasters
         if self.game_time >= self.next_disaster_t:
             self._trigger_disaster()
         self.disaster_t = max(0.0, self.disaster_t - dt)
 
-        # Environmental effects
         if self.blizzard_t > 0:
             self.blizzard_t -= dt
         if self.mania_t > 0:
@@ -152,10 +197,10 @@ class Simulation:
         # Wildfire
         for wf in self.wildfire_zones:
             wf['t'] -= dt
-            for e in self.entities:
-                if e.dead:
+            for e in self.grid.query(wf['x'], wf['y'], wf['r']):
+                if e.dead or e.type != 'unit':
                     continue
-                if e.type == 'unit' and _dist(e.x, e.y, wf['x'], wf['y']) < wf['r']:
+                if _dist(e.x, e.y, wf['x'], wf['y']) < wf['r']:
                     already = next((d for d in e.dots if d.get('src') == 'wildfire'), None)
                     if already:
                         already['t'] = 1.0
@@ -169,7 +214,7 @@ class Simulation:
             pc['t'] -= dt
             pc['x'] += pc['vx'] * dt
             pc['y'] += pc['vy'] * dt
-            for e in self.entities:
+            for e in self.grid.query(pc['x'], pc['y'], pc['r']):
                 if e.dead or e.type != 'unit':
                     continue
                 if _dist(e.x, e.y, pc['x'], pc['y']) < pc['r']:
@@ -191,32 +236,22 @@ class Simulation:
                 self.events.append({'type': 'sparks', 'x': f['cx'], 'y': f['cy'],
                                     'color': f['color'], 'n': 16})
 
-        # Remove dead
+        # Prune dead
         self.entities = [e for e in self.entities if not e.dead]
 
-        # Rebuild caches
-        self.castle_cache       = {}
-        self.faction_unit_count = {}
-        self.tumor_list         = []
-        self.rage_totem_list    = []
-        for e in self.entities:
-            if e.type == 'castle':
-                self.castle_cache[e.fid] = e
-            elif e.type == 'unit':
-                self.faction_unit_count[e.fid] = self.faction_unit_count.get(e.fid, 0) + 1
-            elif e.type == 'building':
-                if e.btype == 'tumor':
-                    self.tumor_list.append(e)
-                elif e.btype == 'rage_totem':
-                    self.rage_totem_list.append(e)
+        # Rebuild caches + spatial grid
+        self._rebuild_caches()
 
-        # Burn aura batch (~4× / sec)
+        # ── Global Horsemen monument debuffs ──────────────────────────────────
+        self._apply_monument_debuffs(dt)
+
+        # Burn aura
         self.burn_aura_t -= dt
         if self.burn_aura_t <= 0:
             self.burn_aura_t = 0.25
             self._do_burn_aura()
 
-        # Update entities
+        # Update all entities
         for e in self.entities:
             e.update(dt, self)
 
@@ -232,13 +267,136 @@ class Simulation:
             self.region_update_t = 0.0
             self._update_regions()
 
+    # ── Cache rebuild ─────────────────────────────────────────────────────────
+
+    def _rebuild_caches(self):
+        """Single O(n) pass: spatial grid + all faction caches."""
+        self.castle_cache              = {}
+        self.faction_unit_count        = {}
+        self.faction_inc_bldg_count    = {}
+        self.faction_def_bldg_count    = {}
+        self.faction_sp_bldg_count     = {}
+        self.faction_lib_count         = {}
+        self.faction_mine_count        = {}
+        self.faction_blacksmithy_count = {}
+        self.faction_quarry_count      = {}
+        self.faction_altar_count       = {}
+        self.faction_lab_count         = {}
+        self.faction_blood_fountain_count = {}
+        self.faction_amphitheater_count   = {}
+        self.faction_fighting_pit_count   = {}
+        self.tumor_list                = []
+        self.rage_totem_list           = []
+
+        self.grid.clear()
+
+        for e in self.entities:
+            self.grid.insert(e)
+
+            if e.type == 'castle':
+                self.castle_cache[e.fid] = e
+
+            elif e.type == 'unit':
+                self.faction_unit_count[e.fid] = self.faction_unit_count.get(e.fid, 0) + 1
+
+            elif e.type == 'building':
+                fid   = e.fid
+                btype = e.btype
+                cfg   = FBLDG.get(fid, {})
+
+                if e.income:
+                    self.faction_inc_bldg_count[fid] = self.faction_inc_bldg_count.get(fid, 0) + 1
+                elif btype == cfg.get('special'):
+                    self.faction_sp_bldg_count[fid] = self.faction_sp_bldg_count.get(fid, 0) + 1
+                else:
+                    self.faction_def_bldg_count[fid] = self.faction_def_bldg_count.get(fid, 0) + 1
+
+                # Per-building buff caches
+                if btype == 'library':
+                    self.faction_lib_count[fid] = self.faction_lib_count.get(fid, 0) + 1
+                elif btype == 'mines':
+                    self.faction_mine_count[fid] = self.faction_mine_count.get(fid, 0) + 1
+                elif btype == 'blacksmithy':
+                    self.faction_blacksmithy_count[fid] = self.faction_blacksmithy_count.get(fid, 0) + 1
+                elif btype == 'quarry':
+                    self.faction_quarry_count[fid] = self.faction_quarry_count.get(fid, 0) + 1
+                elif btype == 'altar_of_madness':
+                    self.faction_altar_count[fid] = self.faction_altar_count.get(fid, 0) + 1
+                elif btype == 'lab':
+                    self.faction_lab_count[fid] = self.faction_lab_count.get(fid, 0) + 1
+                elif btype == 'blood_fountain':
+                    self.faction_blood_fountain_count[fid] = self.faction_blood_fountain_count.get(fid, 0) + 1
+                elif btype == 'amphitheater':
+                    self.faction_amphitheater_count[fid] = self.faction_amphitheater_count.get(fid, 0) + 1
+                elif btype == 'fighting_pit':
+                    self.faction_fighting_pit_count[fid] = self.faction_fighting_pit_count.get(fid, 0) + 1
+
+                if btype == 'biomass_tumor':
+                    self.tumor_list.append(e)
+                elif btype == 'rage_totem':
+                    self.rage_totem_list.append(e)
+
+    # ── Horsemen monument global debuffs ──────────────────────────────────────
+
+    def _apply_monument_debuffs(self, dt):
+        """
+        For each Horseman monument that exists AND whose Horseman is alive,
+        apply the corresponding global penalty to all enemy entities each tick.
+
+        marble_monument   → enemy buildings lose 10% max HP (applied once on discovery)
+        crimson_cenotaph  → enemy units lose 0.5 HP/s (as a DoT)
+        onyx_obelisk      → enemy units have dmg reduced by 10% (clamped, applied per tick)
+        alabaster_angel   → handled in Building.update (kills 1 unit/5s)
+        """
+        # Collect which monuments exist per apoc faction and which horsemen are alive
+        monuments = {}   # btype → fid
+        alive_horsemen = {
+            e.utype for e in self.entities
+            if e.type == 'unit' and getattr(e, 'is_horseman', False) and not e.dead
+        }
+
+        for e in self.entities:
+            if e.type == 'building' and e.btype in _MONUMENT_REQUIREMENTS:
+                required = _MONUMENT_REQUIREMENTS[e.btype]
+                if required in alive_horsemen:
+                    monuments[e.btype] = e.fid
+
+        if not monuments:
+            return
+
+        for e in self.entities:
+            if e.dead:
+                continue
+            fid = e.fid
+            # Check if this entity belongs to an enemy of any apoc monument owner
+            for btype, owner_fid in monuments.items():
+                if fid == owner_fid:
+                    continue   # don't debuff own faction
+
+                if btype == 'crimson_cenotaph' and e.type == 'unit':
+                    # -0.5 HP/s continuous drain
+                    e.hp = max(1.0, e.hp - 0.5 * dt)
+
+                elif btype == 'onyx_obelisk' and e.type == 'unit':
+                    # -10% dmg per tick (floor at 1)
+                    base_dmg = getattr(e, '_base_dmg_before_obelisk', e.dmg)
+                    e._base_dmg_before_obelisk = base_dmg
+                    e.dmg = max(1.0, base_dmg * 0.90)
+
+                elif btype == 'marble_monument' and e.type == 'building':
+                    # Apply once: reduce max HP by 10%
+                    if not getattr(e, '_marble_debuffed', False):
+                        e._marble_debuffed = True
+                        e.max_hp = max(1.0, e.max_hp * 0.90)
+                        e.hp     = min(e.hp, e.max_hp)
+
     # ── Burn aura ─────────────────────────────────────────────────────────────
 
     def _do_burn_aura(self):
         for burner in self.entities:
             if not getattr(burner, 'burn_aura', False) or burner.dead:
                 continue
-            for e in self.entities:
+            for e in self.grid.query(burner.x, burner.y, 22):
                 if e.fid == burner.fid or e.dead or e.type != 'unit':
                     continue
                 if _dist(e.x, e.y, burner.x, burner.y) < 22:
@@ -251,13 +409,9 @@ class Simulation:
         self.disaster_msg = msg
         self.disaster_col = col
         self.disaster_t   = 4.0
-        entry = {'msg': msg, 'col': col, 'time': int(self.game_time)}
-        self.disaster_history.insert(0, entry)
-        if len(self.disaster_history) > 4:
-            self.disaster_history.pop()
+        self.disaster_history.appendleft({'msg': msg, 'col': col, 'time': int(self.game_time)})
 
     def _trigger_disaster(self):
-        # Don't stack persistent effects — if one is still active, check again in 30s
         has_active = (self.blizzard_t > 0 or self.wildfire_zones or
                       self.plague_cloud or self.mania_t > 0)
         if has_active:
@@ -280,7 +434,7 @@ class Simulation:
                 my = 80 + random.random() * (MAP_H - 160)
                 self.events.append({'type': 'meteor', 'x': mx, 'y': my})
                 self.events.append({'type': 'boom', 'x': mx, 'y': my, 'r': 75, 'color': '#FF4400'})
-                for e in self.entities:
+                for e in self.grid.query(mx, my, 75):
                     if e.dead:
                         continue
                     if _dist(e.x, e.y, mx, my) < 75:
@@ -304,7 +458,7 @@ class Simulation:
             ey = 100 + random.random() * (MAP_H - 200)
             self.shake_t = 2.0
             self.events.append({'type': 'boom', 'x': ex, 'y': ey, 'r': 150, 'color': '#886633'})
-            for e in self.entities:
+            for e in self.grid.query(ex, ey, 150):
                 if e.dead or e.type == 'castle':
                     continue
                 if e.type in ('building', 'tower') and _dist(e.x, e.y, ex, ey) < 150:
@@ -346,9 +500,8 @@ class Simulation:
 
         elif dtype == 'pestilence':
             self._announce_disaster('PESTILENCE', '#66AA22')
-            victims = random.sample(
-                [e for e in self.entities if e.type == 'unit' and not e.dead],
-                k=min(10, sum(1 for e in self.entities if e.type == 'unit' and not e.dead)))
+            candidates = [e for e in self.entities if e.type == 'unit' and not e.dead]
+            victims = random.sample(candidates, k=min(10, len(candidates)))
             for v in victims:
                 v.dots.append({'dmg': 5, 't': 30.0, 'src': 'pestilence'})
                 v.flash = 0.3
@@ -357,9 +510,9 @@ class Simulation:
             self._announce_disaster('MADNESS', '#AA44DD')
             candidates = [e for e in self.entities if e.type == 'unit' and not e.dead]
             for v in random.sample(candidates, k=min(15, len(candidates))):
-                v.confused   = True
-                v.confuse_t  = 25.0
-                v.flash      = 0.4
+                v.confused  = True
+                v.confuse_t = 25.0
+                v.flash     = 0.4
 
         elif dtype == 'mania':
             self._announce_disaster('MANIA', '#FF44AA')
@@ -373,7 +526,7 @@ class Simulation:
 
         elif dtype == 'warp_storm':
             self._announce_disaster('WARP STORM', '#8844FF')
-            units = [e for e in self.entities if e.type == 'unit' and not e.dead]
+            units     = [e for e in self.entities if e.type == 'unit' and not e.dead]
             positions = [(e.x, e.y) for e in units]
             random.shuffle(positions)
             for e, (nx, ny) in zip(units, positions):
@@ -384,9 +537,9 @@ class Simulation:
             self._announce_disaster('BLESSINGS', '#AAFFAA')
             candidates = [e for e in self.entities if e.type == 'unit' and not e.dead]
             for v in random.sample(candidates, k=min(10, len(candidates))):
-                v.max_hp  += 40
-                v.hp       = v.max_hp
-                v.healing  = 1.2
+                v.max_hp += 40
+                v.hp      = v.max_hp
+                v.healing = 1.2
 
         elif dtype == 'frog_rain':
             self._announce_disaster('FROG RAIN', '#55BB33')
@@ -394,7 +547,7 @@ class Simulation:
                 fx = 60 + random.random() * (MAP_W - 120)
                 fy = 60 + random.random() * (MAP_H - 120)
                 self.events.append({'type': 'boom', 'x': fx, 'y': fy, 'r': 40, 'color': '#55BB33'})
-                for e in self.entities:
+                for e in self.grid.query(fx, fy, 40):
                     if e.dead or e.type != 'unit':
                         continue
                     if _dist(e.x, e.y, fx, fy) < 40:
@@ -409,7 +562,7 @@ class Simulation:
         for reg in self.regions:
             counts = {}
             rx, ry = reg['x'], reg['y']
-            for e in self.entities:
+            for e in self.grid.query_rect(rx, ry, rw, rh):
                 if e.dead:
                     continue
                 if e.type not in ('unit', 'building', 'castle', 'titan'):
@@ -417,39 +570,37 @@ class Simulation:
                 if rx <= e.x < rx + rw and ry <= e.y < ry + rh:
                     counts[e.fid] = counts.get(e.fid, 0) + (3 if e.type == 'castle' else 1)
             if counts:
-                best = max(counts, key=counts.get)
+                best  = max(counts, key=counts.get)
                 total = sum(counts.values())
                 reg['controlling_fid'] = best
-                reg['control_pct'] = counts[best] / total
+                reg['control_pct']     = counts[best] / total
             elif reg['controlling_fid']:
-                # Region is empty but already claimed — restore to full control
                 reg['control_pct'] = min(1.0, reg['control_pct'] + 0.2)
-            # else: never been claimed, leave as-is
 
     # ── Serialisation ─────────────────────────────────────────────────────────
 
     def to_state(self, include_terrain=False):
         state = {
-            'game_time':       self.game_time,
-            'game_over_timer': self.game_over_timer,
-            'winner':          self.winner,
-            'titans_spawned':  self.titans_spawned,
-            'blizzard_t':      self.blizzard_t,
-            'mania_t':         self.mania_t,
-            'wildfire_zones':  self.wildfire_zones,
-            'plague_cloud':    self.plague_cloud,
-            'shake_x':         self.shake_x,
-            'shake_y':         self.shake_y,
-            'disaster_msg':    self.disaster_msg,
-            'disaster_col':    self.disaster_col,
-            'disaster_t':      self.disaster_t,
-            'disaster_history': self.disaster_history,
-            'next_disaster_t': self.next_disaster_t,
-            'faction_keys':    self.faction_keys,
-            'factions':        self.factions,
-            'entities':        [e.to_dict() for e in self.entities],
-            'events':          self.events,
-            'regions':         self.regions,
+            'game_time':        self.game_time,
+            'game_over_timer':  self.game_over_timer,
+            'winner':           self.winner,
+            'titans_spawned':   self.titans_spawned,
+            'blizzard_t':       self.blizzard_t,
+            'mania_t':          self.mania_t,
+            'wildfire_zones':   self.wildfire_zones,
+            'plague_cloud':     self.plague_cloud,
+            'shake_x':          self.shake_x,
+            'shake_y':          self.shake_y,
+            'disaster_msg':     self.disaster_msg,
+            'disaster_col':     self.disaster_col,
+            'disaster_t':       self.disaster_t,
+            'disaster_history': list(self.disaster_history),
+            'next_disaster_t':  self.next_disaster_t,
+            'faction_keys':     self.faction_keys,
+            'factions':         self.factions,
+            'entities':         [e.to_dict() for e in self.entities],
+            'events':           self.events,
+            'regions':          self.regions,
         }
         if include_terrain:
             state['terrain'] = self.terrain_serial

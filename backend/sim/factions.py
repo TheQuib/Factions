@@ -4,12 +4,9 @@ import random
 MAP_W = 1200
 MAP_H = 820
 
-# --- Timing constants (game-seconds) ---
-# Default game speed: 0.5 game-sec / real-sec  →  each of these is ~2x the original value
-# so a battle plays out over ~30-60 real minutes, with titans appearing after ~4 hours.
-TITAN_TIME      = 1200   # 20:00 game time
-TOWER_EXPIRE    = 600    # 10:00 game time
-RESTART_DELAY   = 120    # 4 real minutes between games
+TITAN_TIME      = 1200
+TOWER_EXPIRE    = 600
+RESTART_DELAY   = 120
 PASSIVE_GOLD    = 10
 BUILD_GOLD      = 2.5
 SWARM_THRESHOLD = 9
@@ -19,148 +16,265 @@ MAX_SPECIAL     = 2
 MAX_UNITS_PER_FACTION = 38
 PANEL_GRACE     = 35
 
-# Server tick / speed settings
-TICK_INTERVAL   = 0.033    # real-seconds between simulation ticks (~30 Hz)
-GAME_SPEED      = 1.0    # game-seconds advanced per real-second (1:1 with real time)
-# Each tick: dt = GAME_SPEED * TICK_INTERVAL = 0.033 game-seconds
+TICK_INTERVAL   = 0.033
+GAME_SPEED      = 1.0
 
-# Disaster interval — override via DISASTER_INTERVAL env var (game-seconds, default 300 = 5 min)
 DISASTER_INTERVAL = float(os.environ.get('DISASTER_INTERVAL', 300))
 
 STARTS = [[160, 160], [600, 130], [1040, 160], [160, 660], [600, 690], [1040, 660]]
 
 ALL_FACTIONS = {
-    'red':    {'id': 'red',    'name': 'THE HIVE',        'color': '#D44040', 'lo': '#420A0A', 'hi': '#FF5555'},
-    'blue':   {'id': 'blue',   'name': 'MAGE COUNCIL',    'color': '#5090E8', 'lo': '#0E2255', 'hi': '#88BBFF'},
-    'green':  {'id': 'green',  'name': 'SYLVAN ELVES',    'color': '#44CC55', 'lo': '#0E3818', 'hi': '#88FF99'},
-    'yellow': {'id': 'yellow', 'name': 'PALADIN ORDER',   'color': '#E8C030', 'lo': '#4A3C08', 'hi': '#FFE060'},
-    'steel':  {'id': 'steel',  'name': 'IRON LEGION',     'color': '#9AAABB', 'lo': '#2A3040', 'hi': '#DDEEFF'},
-    'purp':   {'id': 'purp',   'name': 'SHADOW GUILD',    'color': '#AA44CC', 'lo': '#1A0830', 'hi': '#DD88FF'},
-    'cyan':   {'id': 'cyan',   'name': 'STORM RIDERS',    'color': '#22CCCC', 'lo': '#082830', 'hi': '#88FFFF'},
-    'bone':   {'id': 'bone',   'name': 'BONE COURT',      'color': '#C8C080', 'lo': '#282410', 'hi': '#FFFFC0'},
-    'ice':    {'id': 'ice',    'name': 'FROST COVENANT',  'color': '#88CCFF', 'lo': '#0A1830', 'hi': '#CCEEFF'},
-    'olive':  {'id': 'olive',  'name': 'FUNGAL COLONY',   'color': '#88AA22', 'lo': '#1A2008', 'hi': '#CCEE44'},
-    'orange': {'id': 'orange', 'name': 'VOLCANIC CLAN',   'color': '#FF7722', 'lo': '#3A1008', 'hi': '#FFAA44'},
-    'gold':   {'id': 'gold',   'name': 'CELESTIAL CHOIR', 'color': '#FFD700', 'lo': '#3A3000', 'hi': '#FFEEAA'},
-    'teal':   {'id': 'teal',   'name': 'DEEP RAIDERS',    'color': '#22AAAA', 'lo': '#082020', 'hi': '#66DDDD'},
-    'crim':   {'id': 'crim',   'name': 'BLOOD PACT',      'color': '#CC2222', 'lo': '#300808', 'hi': '#FF6666'},
-    'slate':  {'id': 'slate',  'name': 'GOLEM WORKS',     'color': '#7788AA', 'lo': '#1A2030', 'hi': '#AABBCC'},
-    'rose':   {'id': 'rose',   'name': 'DREAM WEAVERS',   'color': '#EE88BB', 'lo': '#3A1030', 'hi': '#FFBBDD'},
+    'red':    {'id': 'red',    'name': 'HEMOPHAGE HIVE',        'color': '#D44040', 'lo': '#420A0A', 'hi': '#FF5555'},
+    'blue':   {'id': 'blue',   'name': 'ARCANE ACADEMY',        'color': '#5090E8', 'lo': '#0E2255', 'hi': '#88BBFF'},
+    'green':  {'id': 'green',  'name': 'SYLVAN STEWARDS',       'color': '#44CC55', 'lo': '#0E3818', 'hi': '#88FF99'},
+    'yellow': {'id': 'yellow', 'name': 'LUX LEGIONIS',          'color': '#E8C030', 'lo': '#4A3C08', 'hi': '#FFE060'},
+    'steel':  {'id': 'steel',  'name': 'GNOMISH GEARSMITHS',    'color': '#9AAABB', 'lo': '#2A3040', 'hi': '#DDEEFF'},
+    'bone':   {'id': 'bone',   'name': 'CRYPTLORD CABAL',       'color': '#C8C080', 'lo': '#282410', 'hi': '#FFFFC0'},
+    'olive':  {'id': 'olive',  'name': 'MYCELIUM MULTITUDE',    'color': '#88AA22', 'lo': '#1A2008', 'hi': '#CCEE44'},
+    'gold':   {'id': 'gold',   'name': 'CELESTIAL CHOIR',       'color': '#FFD700', 'lo': '#3A3000', 'hi': '#FFEEAA'},
+    'crim':   {'id': 'crim',   'name': 'SANGUINE SUPPLICANTS',  'color': '#CC2222', 'lo': '#300808', 'hi': '#FF6666'},
+    'slate':  {'id': 'slate',  'name': 'GNOMISH GEARSMITHS',     'color': '#7788AA', 'lo': '#1A2030', 'hi': '#AABBCC'},
+    'brown':  {'id': 'brown',  'name': 'BULWARK BASTION',       'color': '#AA8855', 'lo': '#3A2810', 'hi': '#DDBB88'},
+    'dagon':  {'id': 'dagon',  'name': 'DREAMERS OF DAGON',     'color': '#6644AA', 'lo': '#1A0830', 'hi': '#9966DD'},
+    'pink':   {'id': 'pink',   'name': 'HOSTILE HOSPICE',       'color': '#DD55AA', 'lo': '#3A0820', 'hi': '#FF88CC'},
+    'mann':   {'id': 'mann',   'name': 'EMPIRE OF MAN',         'color': '#CC9944', 'lo': '#3A2808', 'hi': '#FFCC66'},
+    'goblin': {'id': 'goblin', 'name': 'GOBLIN GANG',           'color': '#44AA44', 'lo': '#0A2008', 'hi': '#88DD88'},
+    'apoc':   {'id': 'apoc',   'name': 'HORSEMEN OF THE APOC',  'color': '#AA2244', 'lo': '#2A0810', 'hi': '#FF4466'},
 }
 
 UTYPES = {
+    # ── HEMOPHAGE HIVE (red) ─────────────────────────────────────────────────────
     'hive_swarm':    {'hp': 10,   'dmg': 1,   'spd': 75,  'rng': 18,  'atk_spd': 0.25, 'size': 5,  'cost': 2},
     'hive_soldier':  {'hp': 75,   'dmg': 15,  'spd': 50,  'rng': 22,  'atk_spd': 1.0,  'size': 7,  'cost': 35},
     'hive_host':     {'hp': 90,   'dmg': 0,   'spd': 10,  'rng': 115, 'atk_spd': 10.0, 'size': 9,  'cost': 50, 'spawns': 'hive_mite'},
     'hive_mite':     {'hp': 5,    'dmg': 50,  'spd': 25,  'rng': 14,  'atk_spd': 1.0,  'size': 3,  'cost': 0,  'is_bomber': True, 'aoe': 38},
-    'hive_builder':  {'hp': 25,   'dmg': 0,   'spd': 40,  'rng': 0,   'size': 5,        'cost': 28, 'is_builder': True, 'build_time': 9,  'b_type': 'tumor'},
+    'hive_builder':  {'hp': 25,   'dmg': 0,   'spd': 40,  'rng': 0,   'size': 5,        'cost': 28, 'is_builder': True, 'build_time': 9,  'b_type': 'biomass_tumor'},
     'brood_bug':     {'hp': 22,   'dmg': 6,   'spd': 58,  'rng': 18,  'atk_spd': 0.6,  'size': 4,  'cost': 0},
-    'wiz_fire':      {'hp': 55,   'dmg': 5,   'spd': 10,  'rng': 100, 'atk_spd': 1.5,  'size': 6,  'cost': 25, 'aoe': 10},
-    'wiz_storm':     {'hp': 55,   'dmg': 5,   'spd': 10,  'rng': 100, 'atk_spd': 3.0,  'size': 6,  'cost': 45, 'chains': 3},
-    'wiz_necro':     {'hp': 55,   'dmg': 5,   'spd': 10,  'rng': 100, 'atk_spd': 2.0,  'size': 6,  'cost': 50, 'summons': 'skeleton'},
-    'skeleton':      {'hp': 5,    'dmg': 5,   'spd': 25,  'rng': 25,  'atk_spd': 0.9,  'size': 5,  'cost': 0,  'is_summon': True},
-    'wiz_builder':   {'hp': 25,   'dmg': 0,   'spd': 40,  'rng': 0,   'size': 5,        'cost': 38, 'is_builder': True, 'build_time': 11, 'b_type': 'library'},
-    'elf_archer':    {'hp': 25,   'dmg': 25,  'spd': 50,  'rng': 150, 'atk_spd': 5.0,  'size': 5,  'cost': 50},
-    'elf_rogue':     {'hp': 15,   'dmg': 15,  'spd': 75,  'rng': 20,  'atk_spd': 0.85, 'size': 5,  'cost': 50, 'burst_dmg': 100},
-    'elf_builder':   {'hp': 25,   'dmg': 0,   'spd': 50,  'rng': 0,   'size': 5,        'cost': 32, 'is_builder': True, 'build_time': 9,  'b_type': 'stonecircle'},
-    'pal_knight':    {'hp': 150,  'dmg': 25,  'spd': 25,  'rng': 26,  'atk_spd': 2.5,  'size': 8,  'cost': 60},
-    'pal_cleric':    {'hp': 25,   'dmg': 5,   'spd': 40,  'rng': 95,  'atk_spd': 1.0,  'size': 6,  'cost': 25, 'heal': 14},
-    'pal_builder':   {'hp': 25,   'dmg': 0,   'spd': 50,  'rng': 0,   'size': 5,        'cost': 40, 'is_builder': True, 'build_time': 14, 'b_type': 'farm'},
-    'iron_foot':     {'hp': 180,  'dmg': 18,  'spd': 22,  'rng': 24,  'atk_spd': 1.8,  'size': 8,  'cost': 55},
-    'iron_ballista': {'hp': 60,   'dmg': 40,  'spd': 15,  'rng': 160, 'atk_spd': 3.5,  'size': 7,  'cost': 70, 'aoe': 18},
-    'iron_builder':  {'hp': 25,   'dmg': 0,   'spd': 35,  'rng': 0,   'size': 5,        'cost': 35, 'is_builder': True, 'build_time': 12, 'b_type': 'granary'},
-    'shade_rogue':   {'hp': 30,   'dmg': 18,  'spd': 70,  'rng': 22,  'atk_spd': 0.9,  'size': 5,  'cost': 40, 'poison_on_hit': True},
-    'phantom':       {'hp': 20,   'dmg': 35,  'spd': 80,  'rng': 18,  'atk_spd': 0.7,  'size': 5,  'cost': 55, 'burst_dmg': 90, 'poison_on_hit': True},
-    'purp_builder':  {'hp': 25,   'dmg': 0,   'spd': 50,  'rng': 0,   'size': 5,        'cost': 32, 'is_builder': True, 'build_time': 10, 'b_type': 'thieves_den'},
-    'storm_lancer':  {'hp': 90,   'dmg': 22,  'spd': 80,  'rng': 24,  'atk_spd': 1.4,  'size': 7,  'cost': 50, 'charge_dmg': True},
-    'storm_shaman':  {'hp': 45,   'dmg': 8,   'spd': 55,  'rng': 110, 'atk_spd': 2.5,  'size': 6,  'cost': 45, 'chains': 2},
-    'cyan_builder':  {'hp': 25,   'dmg': 0,   'spd': 55,  'rng': 0,   'size': 5,        'cost': 32, 'is_builder': True, 'build_time': 10, 'b_type': 'stable'},
-    'bone_archer':   {'hp': 35,   'dmg': 20,  'spd': 30,  'rng': 130, 'atk_spd': 2.0,  'size': 6,  'cost': 45, 'raise_dead': True},
-    'death_knight':  {'hp': 140,  'dmg': 28,  'spd': 30,  'rng': 26,  'atk_spd': 2.0,  'size': 8,  'cost': 65, 'aoe': 30},
-    'bone_builder':  {'hp': 25,   'dmg': 0,   'spd': 35,  'rng': 0,   'size': 5,        'cost': 32, 'is_builder': True, 'build_time': 11, 'b_type': 'ossuary'},
-    'frost_mage':    {'hp': 45,   'dmg': 12,  'spd': 18,  'rng': 120, 'atk_spd': 2.2,  'size': 6,  'cost': 45, 'frost_slow': True},
-    'ice_golem':     {'hp': 280,  'dmg': 20,  'spd': 16,  'rng': 26,  'atk_spd': 2.5,  'size': 10, 'cost': 80, 'no_regen': True},
-    'ice_builder':   {'hp': 25,   'dmg': 0,   'spd': 35,  'rng': 0,   'size': 5,        'cost': 35, 'is_builder': True, 'build_time': 12, 'b_type': 'frost_shrine'},
-    'myconid':       {'hp': 30,   'dmg': 8,   'spd': 30,  'rng': 60,  'atk_spd': 1.5,  'size': 6,  'cost': 35, 'aoe': 55, 'is_bomber': True},
-    'spore_shaman':  {'hp': 40,   'dmg': 6,   'spd': 22,  'rng': 100, 'atk_spd': 1.8,  'size': 6,  'cost': 45, 'aoe': 40},
-    'olive_builder': {'hp': 25,   'dmg': 0,   'spd': 35,  'rng': 0,   'size': 5,        'cost': 28, 'is_builder': True, 'build_time': 10, 'b_type': 'mycelium'},
-    'fire_war':      {'hp': 100,  'dmg': 20,  'spd': 38,  'rng': 22,  'atk_spd': 1.5,  'size': 7,  'cost': 50, 'burn_aura': True},
-    'fire_priest':   {'hp': 50,   'dmg': 10,  'spd': 25,  'rng': 90,  'atk_spd': 2.0,  'size': 6,  'cost': 45, 'aoe': 50},
-    'orange_builder':{'hp': 25,   'dmg': 0,   'spd': 38,  'rng': 0,   'size': 5,        'cost': 30, 'is_builder': True, 'build_time': 10, 'b_type': 'forge'},
-    'bless_knight':  {'hp': 120,  'dmg': 22,  'spd': 30,  'rng': 26,  'atk_spd': 2.0,  'size': 7,  'cost': 55, 'heal_on_kill': True},
-    'seraph':        {'hp': 35,   'dmg': 5,   'spd': 40,  'rng': 100, 'atk_spd': 1.5,  'size': 6,  'cost': 40, 'heal': 18},
-    'gold_builder':  {'hp': 25,   'dmg': 0,   'spd': 40,  'rng': 0,   'size': 5,        'cost': 35, 'is_builder': True, 'build_time': 11, 'b_type': 'shrine'},
-    'sea_raider':    {'hp': 80,   'dmg': 18,  'spd': 55,  'rng': 24,  'atk_spd': 1.4,  'size': 7,  'cost': 45, 'river_bonus': True},
-    'tide_caller':   {'hp': 45,   'dmg': 8,   'spd': 40,  'rng': 110, 'atk_spd': 2.0,  'size': 6,  'cost': 45, 'aoe': 55},
-    'teal_builder':  {'hp': 25,   'dmg': 0,   'spd': 45,  'rng': 0,   'size': 5,        'cost': 30, 'is_builder': True, 'build_time': 10, 'b_type': 'harbor'},
-    'berserker':     {'hp': 80,   'dmg': 20,  'spd': 55,  'rng': 22,  'atk_spd': 1.2,  'size': 7,  'cost': 45, 'blood_rage': True},
-    'blood_shaman':  {'hp': 40,   'dmg': 8,   'spd': 35,  'rng': 95,  'atk_spd': 1.8,  'size': 6,  'cost': 40},
-    'crim_builder':  {'hp': 25,   'dmg': 0,   'spd': 40,  'rng': 0,   'size': 5,        'cost': 30, 'is_builder': True, 'build_time': 10, 'b_type': 'blood_altar'},
-    'stone_golem':   {'hp': 400,  'dmg': 25,  'spd': 14,  'rng': 28,  'atk_spd': 3.5,  'size': 12, 'cost': 90, 'no_regen': True},
-    'siege_golem':   {'hp': 200,  'dmg': 40,  'spd': 10,  'rng': 140, 'atk_spd': 5.0,  'size': 10, 'cost': 80, 'no_regen': True, 'aoe': 35},
-    'slate_builder': {'hp': 25,   'dmg': 0,   'spd': 28,  'rng': 0,   'size': 5,        'cost': 40, 'is_builder': True, 'build_time': 14, 'b_type': 'foundry'},
-    'dream_archer':  {'hp': 30,   'dmg': 15,  'spd': 45,  'rng': 130, 'atk_spd': 2.5,  'size': 5,  'cost': 45, 'confuses': True},
-    'dream_knight':  {'hp': 90,   'dmg': 18,  'spd': 40,  'rng': 24,  'atk_spd': 1.8,  'size': 7,  'cost': 50},
-    'rose_builder':  {'hp': 25,   'dmg': 0,   'spd': 40,  'rng': 0,   'size': 5,        'cost': 32, 'is_builder': True, 'build_time': 11, 'b_type': 'dream_spire'},
-    'elem_fire':     {'hp': 900,  'dmg': 50,  'spd': 30,  'rng': 90,  'atk_spd': 1.4,  'size': 16, 'is_titan': True, 'aoe': 72,  'river_bonus': True},
-    'elem_water':    {'hp': 900,  'dmg': 50,  'spd': 30,  'rng': 115, 'atk_spd': 1.8,  'size': 15, 'is_titan': True, 'aoe': 82, 'chains': 3, 'river_bonus': True},
-    'elem_earth':    {'hp': 1100, 'dmg': 50,  'spd': 25,  'rng': 95,  'atk_spd': 2.8,  'size': 18, 'is_titan': True, 'aoe': 55,  'river_bonus': True},
-    'elem_air':      {'hp': 700,  'dmg': 100, 'spd': 50,  'rng': 28,  'atk_spd': 0.9,  'size': 14, 'is_titan': True, 'river_bonus': True},
-    'chaos_titan':   {'hp': 1000, 'dmg': 60,  'spd': 35,  'rng': 80,  'atk_spd': 1.5,  'size': 16, 'is_titan': True, 'aoe': 65, 'chains': 2, 'river_bonus': True},
+
+    # ── ARCANE ACADEMY (blue) ────────────────────────────────────────────────────
+    'fire_mage':    {'hp': 45, 'dmg': 18, 'spd': 14, 'rng': 110, 'atk_spd': 2.2, 'size': 6, 'cost': 55, 'aoe': 35, 'fire_dot': True},
+    'water_mage':   {'hp': 40, 'dmg': 22, 'spd': 14, 'rng': 115, 'atk_spd': 2.6, 'size': 6, 'cost': 55, 'frost_slow': True},
+    'earth_mage':   {'hp': 50, 'dmg': 32, 'spd': 14, 'rng': 105, 'atk_spd': 3.2, 'size': 6, 'cost': 60},
+    'air_mage':     {'hp': 38, 'dmg': 14, 'spd': 14, 'rng': 120, 'atk_spd': 2.0, 'size': 6, 'cost': 60, 'chains': 3},
+    'acad_builder': {'hp': 25, 'dmg': 0,  'spd': 35, 'rng': 0,   'size': 5,       'cost': 38, 'is_builder': True, 'build_time': 11, 'b_type': 'library'},
+
+    # ── SYLVAN STEWARDS (green) ──────────────────────────────────────────────────
+    'elf_archer':   {'hp': 30,  'dmg': 28, 'spd': 50, 'rng': 150, 'atk_spd': 4.5, 'size': 5, 'cost': 50},
+    'elf_rogue':    {'hp': 20,  'dmg': 18, 'spd': 75, 'rng': 22,  'atk_spd': 0.9, 'size': 5, 'cost': 55, 'burst_dmg': 110},
+    'treant':       {'hp': 380, 'dmg': 35, 'spd': 14, 'rng': 28,  'atk_spd': 3.0, 'size': 13,'cost': 80},
+    'elf_builder':  {'hp': 25,  'dmg': 0,  'spd': 50, 'rng': 0,   'size': 5,       'cost': 32, 'is_builder': True, 'build_time': 9, 'b_type': 'forest'},
+
+    # ── LUX LEGIONIS (yellow) ────────────────────────────────────────────────────
+    'pal_knight':   {'hp': 180, 'dmg': 28, 'spd': 22, 'rng': 26, 'atk_spd': 2.8, 'size': 8, 'cost': 70, 'armor': 0.30},
+    'pal_cleric':   {'hp': 30,  'dmg': 6,  'spd': 40, 'rng': 95, 'atk_spd': 1.0, 'size': 6, 'cost': 30, 'heal': 16},
+    'squire':       {'hp': 80,  'dmg': 14, 'spd': 35, 'rng': 24, 'atk_spd': 1.6, 'size': 6, 'cost': 40},
+    'pal_builder':  {'hp': 25,  'dmg': 0,  'spd': 50, 'rng': 0,  'size': 5,       'cost': 40, 'is_builder': True, 'build_time': 12, 'b_type': 'blacksmithy'},
+
+    # ── GNOMISH GEARSMITHS (steel) ───────────────────────────────────────────────
+    # Self-destructive RNG mechanics. Sapper has 5% self-destruct per shot.
+    # Craftsman minions have a chance to betray and attack their creator.
+    # Gnomish Workshop has a random explosion chance.
+    # Minefield places landmines periodically.
+    'gnome_sapper':    {'hp': 50,  'dmg': 35, 'spd': 30, 'rng': 140, 'atk_spd': 3.0, 'size': 6, 'cost': 60,
+                        'aoe': 45, 'is_sapper': True},      # 5% self-destruct per shot
+    'gnome_craftsman': {'hp': 70,  'dmg': 14, 'spd': 28, 'rng': 26,  'atk_spd': 1.8, 'size': 6, 'cost': 55,
+                        'is_craftsman': True},               # summons clockwork; each hit may betray
+    'gnome_titan':     {'hp': 500, 'dmg': 45, 'spd': 16, 'rng': 120, 'atk_spd': 2.5, 'size': 14,'cost': 120,
+                        'armor': 0.25, 'aoe': 35, 'no_regen': True},
+    'clockwork':       {'hp': 40,  'dmg': 10, 'spd': 45, 'rng': 22,  'atk_spd': 1.0, 'size': 5, 'cost': 0,
+                        'is_summon': True, 'is_clockwork': True},
+    'steel_builder':   {'hp': 25,  'dmg': 0,  'spd': 32, 'rng': 0,   'size': 5,       'cost': 35,
+                        'is_builder': True, 'build_time': 12, 'b_type': 'gnomish_workshop'},
+
+    # ── CRYPTLORD CABAL (bone) ───────────────────────────────────────────────────
+    'bone_death_knight': {'hp': 200, 'dmg': 30, 'spd': 22, 'rng': 26, 'atk_spd': 2.0, 'size': 9, 'cost': 75,
+                          'summons': 'zombie', 'raise_dead': True},
+    'lich':              {'hp': 70,  'dmg': 20, 'spd': 18, 'rng': 130,'atk_spd': 2.5, 'size': 7, 'cost': 80,
+                          'summons': 'crypt_skeleton'},
+    'dominus_mortus':    {'hp': 50,  'dmg': 0,  'spd': 14, 'rng': 0,  'atk_spd': 1.0, 'size': 7, 'cost': 200,
+                          'is_dominus': True},
+    'zombie':            {'hp': 25,  'dmg': 5, 'spd': 18, 'rng': 22, 'atk_spd': 1.4, 'size': 6, 'cost': 0,
+                          'is_summon': True, 'raise_dead': True},
+    'crypt_skeleton':    {'hp': 20,  'dmg': 5, 'spd': 28, 'rng': 120,'atk_spd': 2.2, 'size': 5, 'cost': 0,
+                          'is_summon': True},
+    'crypt_archer':      {'hp': 10,  'dmg': 10, 'spd': 26, 'rng': 120,'atk_spd': 2.0, 'size': 5, 'cost': 0,
+                          'is_crypt_unit': True},
+    'bone_builder':      {'hp': 25,  'dmg': 0,  'spd': 35, 'rng': 0,  'size': 5,       'cost': 32,
+                          'is_builder': True, 'build_time': 11, 'b_type': 'graveyard'},
+
+    # ── MYCELIUM MULTITUDE (olive) ───────────────────────────────────────────────
+    'mushling':          {'hp': 45,  'dmg': 4,  'spd': 40, 'rng': 18, 'atk_spd': 0.7, 'size': 5, 'cost': 10},
+    'sporeburster':      {'hp': 120, 'dmg': 8,  'spd': 16, 'rng': 22, 'atk_spd': 1.8, 'size': 9, 'cost': 50, 'aoe': 45},
+    'sporomancer':       {'hp': 40,  'dmg': 5,  'spd': 28, 'rng': 110,'atk_spd': 3.0, 'size': 6, 'cost': 60,
+                          'is_sporomancer': True},
+    'olive_builder':     {'hp': 25,  'dmg': 0,  'spd': 35, 'rng': 0,  'size': 5,       'cost': 28,
+                          'is_builder': True, 'build_time': 10, 'b_type': 'fungal_patch'},
+
+    # ── CELESTIAL CHOIR (gold) — reworked ────────────────────────────────────────
+    # Expensive buff-support faction. Each unit type applies a passive aura to
+    # nearby allies every tick (applied in Unit.update via _apply_choir_aura).
+    # Amphitheater stacks +1% to all stats. Community Center spawns fan units.
+    'axe_guitar':      {'hp': 60,  'dmg': 18, 'spd': 35, 'rng': 24,  'atk_spd': 1.4, 'size': 6, 'cost': 50,
+                        'choir_aura': 'dmg'},         # buffs nearby ally damage
+    'tuba_cannon':     {'hp': 55,  'dmg': 12, 'spd': 18, 'rng': 130, 'atk_spd': 4.0, 'size': 7, 'cost': 60,
+                        'choir_aura': 'hp'},           # buffs nearby ally max HP
+    'war_drummer':     {'hp': 40,  'dmg': 8,  'spd': 45, 'rng': 22,  'atk_spd': 1.0, 'size': 5, 'cost': 45,
+                        'aoe': 30, 'choir_aura': 'spd'},  # AoE melee + speed buff
+    'conductor':       {'hp': 35,  'dmg': 5,  'spd': 30, 'rng': 90,  'atk_spd': 2.0, 'size': 6, 'cost': 80,
+                        'choir_aura': 'atk_spd'},     # buffs nearby ally attack speed
+    'pianist':         {'hp': 45,  'dmg': 10, 'spd': 22, 'rng': 100, 'atk_spd': 3.0, 'size': 6, 'cost': 65,
+                        'aoe': 55, 'choir_aura': 'heal', 'heal': 8},  # AoE heal allies, dmg enemies
+    'blowdart_flute':  {'hp': 30,  'dmg': 12, 'spd': 55, 'rng': 120, 'atk_spd': 2.2, 'size': 5, 'cost': 55,
+                        'choir_aura': 'aoe'},          # grants AoE bonus to nearby allies
+    'soundboard_tech': {'hp': 40,  'dmg': 8,  'spd': 32, 'rng': 80,  'atk_spd': 2.0, 'size': 6, 'cost': 55,
+                        'choir_aura': 'rng'},          # buffs nearby ally attack range
+    'choir_fan':       {'hp': 15,  'dmg': 5,  'spd': 50, 'rng': 18,  'atk_spd': 0.6, 'size': 4, 'cost': 0,
+                        'is_summon': True},
+    'gold_builder':    {'hp': 25,  'dmg': 0,  'spd': 40, 'rng': 0,   'size': 5,       'cost': 35,
+                        'is_builder': True, 'build_time': 11, 'b_type': 'amphitheater'},
+
+    # ── SANGUINE SUPPLICANTS (crim) ──────────────────────────────────────────────
+    # Stronger the lower their HP. Blood Knight attack scales inversely with HP.
+    # Blood Mage siphons HP and splits a portion to nearby allies.
+    'blood_knight':    {'hp': 250, 'dmg': 12, 'spd': 30, 'rng': 26,  'atk_spd': 1.8, 'size': 9, 'cost': 70,
+                        'is_blood_knight': True},      # dmg scales up as HP decreases
+    'blood_mage':      {'hp': 50,  'dmg': 10, 'spd': 25, 'rng': 110, 'atk_spd': 2.2, 'size': 6, 'cost': 60,
+                        'is_blood_mage': True},        # lifesteal + split to nearby allies
+    'crim_builder':    {'hp': 25,  'dmg': 0,  'spd': 40, 'rng': 0,   'size': 5,       'cost': 30,
+                        'is_builder': True, 'build_time': 10, 'b_type': 'blood_fountain'},
+
+    # ── GNOMISH GEARSMITHS (slate) ────────────────────────────────────────────────
+    'gnome_engineer':  {'hp': 45,  'dmg': 0,  'spd': 36, 'rng': 0,  'size': 5,  'cost': 55, 'is_engineer': True},
+    'forge_golem':     {'hp': 450, 'dmg': 22, 'spd': 14, 'rng': 28, 'atk_spd': 3.0,'size': 13,'cost': 85, 'no_regen': True, 'armor': 0.20},
+    'forge_tank':      {'hp': 100, 'dmg': 45, 'spd': 16, 'rng': 150,'atk_spd': 4.0,'size': 8, 'cost': 100,'no_regen': True, 'aoe': 22},
+    'slate_builder':   {'hp': 25,  'dmg': 0,  'spd': 28, 'rng': 0,  'size': 5,  'cost': 40, 'is_builder': True, 'build_time': 14, 'b_type': 'mines'},
+
+    # ── BULWARK BASTION (brown) ──────────────────────────────────────────────────
+    'bastion_builder': {'hp': 35,  'dmg': 4,  'spd': 32, 'rng': 24, 'atk_spd': 2.0, 'size': 5, 'cost': 35,
+                        'is_bastion_builder': True},
+    'bastion_archer':  {'hp': 40,  'dmg': 30, 'spd': 38, 'rng': 155,'atk_spd': 4.0, 'size': 5, 'cost': 55},
+    'bastion_mortar':  {'hp': 55,  'dmg': 28, 'spd': 18, 'rng': 200,'atk_spd': 5.0, 'size': 7, 'cost': 70, 'aoe': 40},
+
+    # ── DREAMERS OF DAGON (dagon) ────────────────────────────────────────────────
+    'cultist':         {'hp': 15,  'dmg': 10,  'spd': 55, 'rng': 18, 'atk_spd': 0.7, 'size': 4, 'cost': 5},
+    'cult_leader':     {'hp': 30,  'dmg': 8,  'spd': 35, 'rng': 80, 'atk_spd': 2.0, 'size': 6, 'cost': 80,
+                        'is_cult_leader': True},
+    'elder_god':       {'hp': 500, 'dmg': 60, 'spd': 22, 'rng': 90, 'atk_spd': 1.8, 'size': 14,'cost': 300,
+                        'aoe': 60, 'is_elder_god': True},
+    'dagon_builder':   {'hp': 25,  'dmg': 0,  'spd': 40, 'rng': 0,  'size': 5,       'cost': 30,
+                        'is_builder': True, 'build_time': 10, 'b_type': 'altar_of_madness'},
+
+    # ── HOSTILE HOSPICE (pink) ───────────────────────────────────────────────────
+    'test_subject':    {'hp': 60,  'dmg': 15, 'spd': 35, 'rng': 22, 'atk_spd': 1.5, 'size': 6, 'cost': 40,
+                        'is_test_subject': True},
+    'plague_doctor':   {'hp': 35,  'dmg': 8,  'spd': 32, 'rng': 110,'atk_spd': 2.5, 'size': 6, 'cost': 55,
+                        'plague_dot': True},
+    'pink_builder':    {'hp': 25,  'dmg': 0,  'spd': 38, 'rng': 0,  'size': 5,       'cost': 30,
+                        'is_builder': True, 'build_time': 10, 'b_type': 'lab'},
+
+    # ── EMPIRE OF MAN (mann) ─────────────────────────────────────────────────────
+    # Synergy faction: proximity to same unit type grants stacking buffs.
+    # Hoplite: +8% armor per nearby Hoplite (max 60%). Archer: +12% atk rate per
+    # nearby Archer. Bard: grants temporary shield HP scaling with nearby Bards.
+    'hoplite':         {'hp': 130, 'dmg': 18, 'spd': 28, 'rng': 26,  'atk_spd': 2.0, 'size': 7, 'cost': 55,
+                        'armor': 0.0, 'is_hoplite': True},
+    'mann_archer':     {'hp': 45,  'dmg': 22, 'spd': 42, 'rng': 140, 'atk_spd': 3.5, 'size': 5, 'cost': 50,
+                        'is_mann_archer': True},
+    'bard':            {'hp': 35,  'dmg': 6,  'spd': 38, 'rng': 90,  'atk_spd': 2.5, 'size': 5, 'cost': 55,
+                        'is_bard': True},
+    'mann_builder':    {'hp': 25,  'dmg': 0,  'spd': 40, 'rng': 0,   'size': 5,       'cost': 35,
+                        'is_builder': True, 'build_time': 10, 'b_type': 'mann_farm'},
+
+    # ── GOBLIN GANG (goblin) ─────────────────────────────────────────────────────
+    # Hit-and-run skirmishers. Wolf Rider spawns a Goblin on death (melee debuffer).
+    # Mangudai spawns a Goblin Archer on death. Fighting Pit stacks +5% dmg.
+    'wolf':            {'hp': 60,  'dmg': 15, 'spd': 75, 'rng': 22,  'atk_spd': 1.0, 'size': 6, 'cost': 35},
+    'wolf_rider':      {'hp': 70,  'dmg': 18, 'spd': 80, 'rng': 24,  'atk_spd': 1.2, 'size': 7, 'cost': 50,
+                        'death_spawn': 'goblin'},      # spawns goblin on death
+    'mangudai':        {'hp': 50,  'dmg': 20, 'spd': 75, 'rng': 110, 'atk_spd': 2.5, 'size': 6, 'cost': 55,
+                        'death_spawn': 'goblin_archer'},
+    'goblin':          {'hp': 12,  'dmg': 6,  'spd': 55, 'rng': 18,  'atk_spd': 0.6, 'size': 4, 'cost': 0,
+                        'is_summon': True, 'goblin_debuff': True},   # debuffs enemy on hit
+    'goblin_archer':   {'hp': 10,  'dmg': 8,  'spd': 60, 'rng': 100, 'atk_spd': 1.8, 'size': 4, 'cost': 0,
+                        'is_summon': True},
+    'goblin_builder':  {'hp': 25,  'dmg': 0,  'spd': 50, 'rng': 0,   'size': 5,       'cost': 28,
+                        'is_builder': True, 'build_time': 9, 'b_type': 'fighting_pit'},
+
+    # ── HORSEMEN OF THE APOCALYPSE (apoc) ────────────────────────────────────────
+    # Sequential purchase — can only buy next Horseman after owning the previous.
+    # Each Horseman enables a monument building with global debuff effects.
+    # Cairn is built when a Horseman dies.
+    'pestilence':      {'hp': 200, 'dmg': 20, 'spd': 30, 'rng': 28,  'atk_spd': 1.5, 'size': 8, 'cost': 100,
+                        'fire_dot': True, 'is_horseman': True, 'horseman_idx': 0},
+    'war_horseman':    {'hp': 300, 'dmg': 50, 'spd': 28, 'rng': 28,  'atk_spd': 1.8, 'size': 10,'cost': 250,
+                        'is_horseman': True, 'horseman_idx': 1},
+    'famine':          {'hp': 300, 'dmg': 25, 'spd': 25, 'rng': 28,  'atk_spd': 2.0, 'size': 9, 'cost': 350,
+                        'is_horseman': True, 'horseman_idx': 2, 'is_famine': True},
+    'death_horseman':  {'hp': 300, 'dmg': 90, 'spd': 18, 'rng': 30,  'atk_spd': 3.0, 'size': 11,'cost': 500,
+                        'is_horseman': True, 'horseman_idx': 3},
+    'apoc_builder':    {'hp': 25,  'dmg': 0,  'spd': 35, 'rng': 0,   'size': 5,       'cost': 30,
+                        'is_builder': True, 'build_time': 12, 'b_type': 'cairn'},
+
+    # ── TITANS ───────────────────────────────────────────────────────────────────
+    'elem_fire':       {'hp': 2000,  'dmg': 50,  'spd': 30, 'rng': 90,  'atk_spd': 1.4, 'size': 16,'is_titan': True,'aoe': 72,  'river_bonus': True},
+    'elem_water':      {'hp': 2000,  'dmg': 50,  'spd': 30, 'rng': 115, 'atk_spd': 1.8, 'size': 15,'is_titan': True,'aoe': 82,  'chains': 3,'river_bonus': True},
+    'elem_earth':      {'hp': 2000, 'dmg': 50,  'spd': 25, 'rng': 95,  'atk_spd': 2.8, 'size': 18,'is_titan': True,'aoe': 55,  'river_bonus': True},
+    'elem_air':        {'hp': 2000,  'dmg': 100, 'spd': 50, 'rng': 28,  'atk_spd': 0.9, 'size': 14,'is_titan': True,'river_bonus': True},
+    'chaos_titan':     {'hp': 2000, 'dmg': 60,  'spd': 35, 'rng': 80,  'atk_spd': 1.5, 'size': 16,'is_titan': True,'aoe': 65,  'chains': 2,'river_bonus': True},
+    'death_titan':     {'hp': 1200, 'dmg': 55,  'spd': 20, 'rng': 32,  'atk_spd': 1.6, 'size': 18,'is_titan': True,'aoe': 50,  'river_bonus': True, 'raise_dead': True},
 }
 
 SPAWN_POOLS = {
     'red':    ['hive_swarm', 'hive_swarm', 'hive_swarm', 'hive_soldier', 'hive_host'],
-    'blue':   ['wiz_fire', 'wiz_storm', 'wiz_necro'],
-    'green':  ['elf_archer', 'elf_archer', 'elf_rogue'],
-    'yellow': ['pal_knight', 'pal_knight', 'pal_cleric'],
-    'steel':  ['iron_foot', 'iron_foot', 'iron_ballista'],
-    'purp':   ['shade_rogue', 'shade_rogue', 'phantom'],
-    'cyan':   ['storm_lancer', 'storm_lancer', 'storm_shaman'],
-    'bone':   ['bone_archer', 'bone_archer', 'death_knight'],
-    'ice':    ['frost_mage', 'frost_mage', 'ice_golem'],
-    'olive':  ['myconid', 'myconid', 'spore_shaman'],
-    'orange': ['fire_war', 'fire_war', 'fire_priest'],
-    'gold':   ['bless_knight', 'bless_knight', 'seraph'],
-    'teal':   ['sea_raider', 'sea_raider', 'tide_caller'],
-    'crim':   ['berserker', 'berserker', 'blood_shaman'],
-    'slate':  ['stone_golem', 'siege_golem', 'stone_golem'],
-    'rose':   ['dream_archer', 'dream_archer', 'dream_knight'],
+    'blue':   ['fire_mage', 'water_mage', 'earth_mage', 'air_mage'],
+    'green':  ['elf_archer', 'elf_archer', 'elf_rogue', 'treant'],
+    'yellow': ['pal_knight', 'pal_knight', 'squire', 'squire', 'pal_cleric'],
+    'steel':  ['gnome_sapper', 'gnome_sapper', 'gnome_craftsman', 'gnome_titan'],
+    'bone':   ['bone_death_knight', 'bone_death_knight', 'lich'],
+    'olive':  ['mushling', 'mushling', 'mushling', 'sporeburster', 'sporomancer'],
+    'gold':   ['axe_guitar', 'tuba_cannon', 'war_drummer', 'conductor', 'pianist', 'blowdart_flute', 'soundboard_tech'],
+    'crim':   ['blood_knight', 'blood_knight', 'blood_mage'],
+    'slate':  ['gnome_engineer', 'forge_golem', 'forge_golem', 'forge_tank'],
+    'brown':  ['bastion_archer', 'bastion_archer', 'bastion_mortar'],
+    'dagon':  ['cultist', 'cultist', 'cultist', 'cultist', 'cult_leader'],
+    'pink':   ['test_subject', 'test_subject', 'plague_doctor'],
+    'mann':   ['hoplite', 'hoplite', 'mann_archer', 'mann_archer', 'bard'],
+    'goblin': ['wolf', 'wolf', 'wolf_rider', 'mangudai'],
+    'apoc':   ['pestilence'],   # Castle._try_spawn enforces sequential unlocking
 }
 
 FBLDG = {
-    'red':    {'income': 'spore_cluster', 'defense': 'brood_nest',   'special': 'tumor',  'builder': 'hive_builder'},
-    'blue':   {'income': 'library',       'defense': 'arcane_turret',                      'builder': 'wiz_builder'},
-    'green':  {'income': 'stonecircle',   'defense': 'elf_forest',                          'builder': 'elf_builder'},
-    'yellow': {'income': 'farm',          'defense': 'church',                              'builder': 'pal_builder'},
-    'steel':  {'income': 'granary',       'defense': 'rampart',                             'builder': 'iron_builder'},
-    'purp':   {'income': 'thieves_den',   'defense': 'shadow_trap',                         'builder': 'purp_builder'},
-    'cyan':   {'income': 'stable',        'defense': 'storm_totem',                         'builder': 'cyan_builder'},
-    'bone':   {'income': 'ossuary',       'defense': 'death_shrine',                        'builder': 'bone_builder'},
-    'ice':    {'income': 'frost_shrine',  'defense': 'ice_wall',                            'builder': 'ice_builder'},
-    'olive':  {'income': 'mycelium',      'defense': 'spore_tower',                         'builder': 'olive_builder'},
-    'orange': {'income': 'forge',         'defense': 'fire_pit',                            'builder': 'orange_builder'},
-    'gold':   {'income': 'shrine',        'defense': 'beacon',                              'builder': 'gold_builder'},
-    'teal':   {'income': 'harbor',        'defense': 'tide_shrine',                         'builder': 'teal_builder'},
-    'crim':   {'income': 'blood_altar',   'defense': 'rage_totem',                          'builder': 'crim_builder'},
-    'slate':  {'income': 'foundry',       'defense': 'rampart',                             'builder': 'slate_builder'},
-    'rose':   {'income': 'dream_spire',   'defense': 'veil_shrine',                         'builder': 'rose_builder'},
+    'red':    {'income': 'biomass_tumor',    'defense': 'def_hive',        'special': 'biomass_tumor', 'builder': 'hive_builder'},
+    'blue':   {'income': 'library',          'defense': 'arcane_turret',                                'builder': 'acad_builder'},
+    'green':  {'income': 'forest',           'defense': 'bramble_patch',                                'builder': 'elf_builder'},
+    'yellow': {'income': 'blacksmithy',      'defense': 'church',                                       'builder': 'pal_builder'},
+    'steel':  {'income': 'gnomish_workshop', 'defense': 'minefield',                                    'builder': 'steel_builder'},
+    'bone':   {'income': 'graveyard',        'defense': 'crypt',                                        'builder': 'bone_builder'},
+    'olive':  {'income': 'fungal_patch',     'defense': 'sporolith',                                    'builder': 'olive_builder'},
+    'gold':   {'income': 'amphitheater',     'defense': 'community_center',                             'builder': 'gold_builder'},
+    'crim':   {'income': 'blood_fountain',   'defense': 'bloodstone',                                   'builder': 'crim_builder'},
+    'slate':  {'income': 'mines',            'defense': 'flamethrower',                                 'builder': 'slate_builder'},
+    'brown':  {'income': 'quarry',           'defense': 'bastila',          'special': 'bwall',         'builder': 'bastion_builder'},
+    'dagon':  {'income': 'altar_of_madness', 'defense': 'void_rift',                                    'builder': 'dagon_builder'},
+    'pink':   {'income': 'lab',              'defense': 'toxic_smokestack',                             'builder': 'pink_builder'},
+    'mann':   {'income': 'mann_farm',        'defense': 'archer_tower',                                 'builder': 'mann_builder'},
+    'goblin': {'income': 'fighting_pit',     'defense': 'pitfall_trap',                                 'builder': 'goblin_builder'},
+    'apoc':   {'income': 'cairn',            'defense': 'marble_monument',  'special': 'cairn',         'builder': 'apoc_builder'},
 }
 
 FTITAN = {
-    'red': 'elem_fire', 'blue': 'elem_water', 'green': 'elem_earth', 'yellow': 'elem_air',
-    'steel': 'elem_earth', 'purp': 'chaos_titan', 'cyan': 'elem_air', 'bone': 'chaos_titan',
-    'ice': 'elem_water', 'olive': 'elem_earth', 'orange': 'elem_fire', 'gold': 'elem_air',
-    'teal': 'elem_water', 'crim': 'elem_fire', 'slate': 'elem_earth', 'rose': 'chaos_titan',
+    'red':    'elem_fire',   'blue':   'elem_water',  'green':  'elem_earth',
+    'yellow': 'elem_air',    'steel':  'elem_earth',  'bone':   'death_titan',
+    'olive':  'elem_earth',  'gold':   'elem_air',    'crim':   'elem_fire',
+    'slate':  'elem_earth',  'brown':  'elem_earth',  'dagon':  'chaos_titan',
+    'pink':   'chaos_titan', 'mann':   'elem_earth',  'goblin': 'chaos_titan',
+    'apoc':   'chaos_titan',
 }
 
-# Region grid: 3 columns × 3 rows = 9 regions
-# Layout mirrors the 6 faction starting positions (corners + top/bottom centre)
-# with 3 contested midfield cells forming the centre row.
 REGION_NAMES = [
-    'Ironmoor',    'Crystalfen',   'Ashvale',
+    'Ironmoor',    'Crystalfen',     'Ashvale',
     'Thornfield',  'The Heartlands', 'Shadowmere',
-    'Grimgate',    'Saltmarsh',    'Frostholm',
+    'Grimgate',    'Saltmarsh',      'Frostholm',
 ]
 REGION_COLS = 3
 REGION_ROWS = 3
