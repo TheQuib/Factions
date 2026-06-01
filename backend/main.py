@@ -37,16 +37,12 @@ FRONTEND_DIR = ROOT / 'frontend'
 SPRITES_DIR  = ROOT / 'sprites'
 
 # ── Frontend files ────────────────────────────────────────────────────────────
-# Hash of index.html at startup — changes when a new build is deployed.
-# Clients poll /api/version and prompt a refresh if it differs from what they loaded.
 _FRONTEND_VERSION = hashlib.md5((FRONTEND_DIR / 'index.html').read_bytes()).hexdigest()[:12]
 _LOGIN_PAGE = (FRONTEND_DIR / 'login.html').read_text()
 
 # ── Auth config ───────────────────────────────────────────────────────────────
 _AUTH_PASSWORD = os.environ.get('AUTH_PASSWORD', '')
 _SESSION_COOKIE = 'factions_session'
-# Derived from the password so sessions survive server restarts/redeploys.
-# Falls back to a random token when no password is set (auth is disabled anyway).
 _SESSION_TOKEN  = (
     hashlib.sha256(f'factions-session:{_AUTH_PASSWORD}'.encode()).hexdigest()
     if _AUTH_PASSWORD else secrets.token_hex(32)
@@ -85,7 +81,6 @@ def _ip_allowed(ip_str: str) -> bool:
 
 
 def _authenticated(request: Request) -> bool:
-    """Return True if the request should be allowed through without a password."""
     if not _AUTH_PASSWORD:
         return True
     if _ip_allowed(_client_ip(request)):
@@ -100,7 +95,6 @@ app = FastAPI(title='Faction Wars')
 @app.middleware('http')
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    # Login page and sprites are always public
     if path in ('/login',) or path.startswith('/sprites/'):
         return await call_next(request)
     if not _authenticated(request):
@@ -127,7 +121,6 @@ async def login_post(password: str = Form(...)):
         status_code=401,
     )
 
-# Serve sprites/ as static files
 app.mount('/sprites', StaticFiles(directory=str(SPRITES_DIR)), name='sprites')
 
 # ── Simulation (single global instance) ───────────────────────────────────────
@@ -139,28 +132,58 @@ else:
     print('[server] Starting fresh simulation')
 
 # ── WebSocket hub ─────────────────────────────────────────────────────────────
+# Use a plain set; we NEVER iterate it directly — always snapshot first.
 _clients: set[WebSocket] = set()
 
 
+async def _send_one(ws: WebSocket, payload: str) -> WebSocket | None:
+    """Send payload to a single client. Returns the ws if it's dead, else None."""
+    try:
+        await ws.send_text(payload)
+        return None
+    except Exception:
+        return ws
+
+
 async def _broadcast(payload: str):
-    dead = set()
-    for ws in _clients:
-        try:
-            await ws.send_text(payload)
-        except Exception:
-            dead.add(ws)
-    _clients.difference_update(dead)
+    """
+    Send payload to all connected clients concurrently.
+
+    Key fixes vs the original:
+      1. Snapshot the set before iterating so a concurrent connect/disconnect
+         can't mutate it mid-loop (eliminates the RuntimeError crash).
+      2. Use asyncio.gather so all sends happen concurrently; a slow or
+         stalled client no longer blocks every other client.
+      3. Dead sockets identified from gather results are removed after the
+         fact, outside the iteration, so the set is never modified while
+         we're reading from it.
+    """
+    if not _clients:
+        return
+
+    # Snapshot: iterate a frozen copy so connect/disconnect mid-broadcast is safe
+    snapshot = list(_clients)
+
+    results = await asyncio.gather(
+        *(_send_one(ws, payload) for ws in snapshot),
+        return_exceptions=False,
+    )
+
+    # Prune any sockets that failed
+    dead = {ws for ws in results if ws is not None}
+    if dead:
+        _clients.difference_update(dead)
 
 
 # ── Simulation loop task ──────────────────────────────────────────────────────
-_save_interval = 30.0   # real-seconds between SQLite saves
+_save_interval = 30.0
 _last_save     = time.monotonic()
 
 
 async def sim_loop():
     global _last_save
-    dt = TICK_INTERVAL * GAME_SPEED   # game-seconds per tick
-    prev_winner = sim.winner
+    dt = TICK_INTERVAL * GAME_SPEED
+    prev_winner     = sim.winner
     prev_generation = sim.generation
 
     while True:
@@ -180,10 +203,10 @@ async def sim_loop():
             _last_save = now
             db.save_state(sim)
 
-        # Broadcast to clients if any are connected
+        # Broadcast — only serialise if there's anyone to receive it
         if _clients:
             new_game = sim.generation != prev_generation
-            payload = json.dumps(
+            payload  = json.dumps(
                 sim.to_state(include_terrain=new_game),
                 default=str,
             )
@@ -205,13 +228,11 @@ async def index():
 
 @app.get('/api/state')
 async def api_state():
-    """Full state including terrain — used by clients on first connect."""
     return JSONResponse(sim.to_state(include_terrain=True))
 
 
 @app.get('/api/version')
 async def api_version():
-    """Returns a short hash of the frontend bundle. Clients poll this to detect stale pages."""
     return Response(content=_FRONTEND_VERSION, media_type='text/plain')
 
 
@@ -222,7 +243,6 @@ async def api_leaderboard():
 
 @app.post('/api/reset')
 async def api_reset():
-    """Immediately restart the simulation and push fresh state to all clients."""
     sim.init_game()
     db.save_state(sim)
     if _clients:
@@ -236,16 +256,20 @@ async def api_reset():
 @app.websocket('/ws')
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
+    # Register before sending initial state so we don't miss any ticks
     _clients.add(ws)
-    # Send full state (with terrain) immediately so the client can render
     try:
+        # Send full state (with terrain) immediately
         await ws.send_text(json.dumps(
             {**sim.to_state(include_terrain=True), 'full': True},
             default=str))
         while True:
-            # Keep the connection alive; sending is handled by sim_loop
+            # Keep the connection alive; outbound traffic is handled by sim_loop
             await ws.receive_text()
     except WebSocketDisconnect:
         pass
+    except Exception:
+        pass
     finally:
+        # Safe: set.discard never raises, and _broadcast always snapshots first
         _clients.discard(ws)
