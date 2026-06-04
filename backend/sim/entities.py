@@ -1102,7 +1102,7 @@ class Unit:
                 self.aura_t = _CHOIR_AURA_DT
                 nearby_bards = sum(1 for e in sim.grid.query(self.x, self.y, _MAN_SYNERGY_R)
                                    if e is not self and e.fid == self.fid
-                                   and e.utype == 'bard' and not e.dead
+                                   and e.type == 'unit' and e.utype == 'bard' and not e.dead
                                    and _dist(e.x, e.y, self.x, self.y) <= _MAN_SYNERGY_R)
                 sv = 10.0 + 8.0 * nearby_bards
                 for e in sim.grid.query(self.x, self.y, _MAN_SYNERGY_R):
