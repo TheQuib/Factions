@@ -1085,14 +1085,14 @@ class Unit:
         if self.is_hoplite:
             nearby = sum(1 for e in sim.grid.query(self.x, self.y, _MAN_SYNERGY_R)
                          if e is not self and e.fid == self.fid
-                         and e.utype == 'hoplite' and not e.dead
+                         and e.type == 'unit' and e.utype == 'hoplite' and not e.dead
                          and _dist(e.x, e.y, self.x, self.y) <= _MAN_SYNERGY_R)
             self.armor = min(0.60, 0.08 * nearby)
 
         if self.is_mann_archer:
             nearby = sum(1 for e in sim.grid.query(self.x, self.y, _MAN_SYNERGY_R)
                          if e is not self and e.fid == self.fid
-                         and e.utype == 'mann_archer' and not e.dead
+                         and e.type == 'unit' and e.utype == 'mann_archer' and not e.dead
                          and _dist(e.x, e.y, self.x, self.y) <= _MAN_SYNERGY_R)
             self.atk_spd = max(0.5, UTYPES['mann_archer']['atk_spd'] * (1.0 - 0.12 * nearby))
 
