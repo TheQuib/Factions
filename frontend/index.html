@@ -95,38 +95,18 @@ const SPRITE_BLDG_SIZE   = 48;
 const SPRITE_CASTLE_SIZE = 96;
 const SPRITE_TITAN_SIZE  = 96;
 
-const SPRITE_KEYS = [
-  // unit types
-  'hive_swarm','hive_soldier','hive_host','hive_mite','hive_builder','brood_bug',
-  'wiz_fire','wiz_storm','wiz_necro','skeleton','wiz_builder',
-  'elf_archer','elf_rogue','elf_builder',
-  'pal_knight','pal_cleric','pal_builder',
-  'iron_foot','iron_ballista','iron_builder',
-  'shade_rogue','phantom','purp_builder',
-  'storm_lancer','storm_shaman','cyan_builder',
-  'bone_archer','death_knight','bone_builder',
-  'frost_mage','ice_golem','ice_builder',
-  'myconid','spore_shaman','olive_builder',
-  'fire_war','fire_priest','orange_builder',
-  'bless_knight','seraph','gold_builder',
-  'sea_raider','tide_caller','teal_builder',
-  'berserker','blood_shaman','crim_builder',
-  'stone_golem','siege_golem','slate_builder',
-  'dream_archer','dream_knight','rose_builder',
-  // titans
-  'elem_fire','elem_water','elem_earth','elem_air','chaos_titan',
-  // buildings — prefix with 'bldg_'
-  'bldg_castle','bldg_tower',
-  'bldg_farm','bldg_library','bldg_stonecircle','bldg_tumor','bldg_brood_nest',
-  'bldg_arcane_turret','bldg_elf_forest','bldg_church','bldg_granary','bldg_rampart',
-];
-
-function loadSprites() {
-  for (const key of SPRITE_KEYS) {
+async function loadSprites() {
+  let keys;
+  try {
+    const res = await fetch('/api/sprites/manifest');
+    keys = await res.json();
+  } catch {
+    keys = [];
+  }
+  for (const key of keys) {
     const img = new Image();
     img.onload = () => { SPRITES[key] = img; };
     img.src = `/sprites/${key}.png`;
-    // errors silently ignored — fallback to procedural
   }
 }
 loadSprites();

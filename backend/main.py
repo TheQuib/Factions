@@ -95,7 +95,7 @@ app = FastAPI(title='Faction Wars')
 @app.middleware('http')
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    if path in ('/login',) or path.startswith('/sprites/'):
+    if path in ('/login', '/api/sprites/manifest') or path.startswith('/sprites/'):
         return await call_next(request)
     if not _authenticated(request):
         is_ws = request.headers.get('upgrade', '').lower() == 'websocket'
@@ -120,6 +120,11 @@ async def login_post(password: str = Form(...)):
         _LOGIN_PAGE.replace('{error}', '<p class="err">INCORRECT PASSWORD</p>'),
         status_code=401,
     )
+
+@app.get('/api/sprites/manifest')
+async def sprites_manifest():
+    keys = [p.stem for p in sorted(SPRITES_DIR.glob('*.png'))]
+    return JSONResponse(keys)
 
 app.mount('/sprites', StaticFiles(directory=str(SPRITES_DIR)), name='sprites')
 
