@@ -5,6 +5,7 @@ Saves the full serialised state as a JSON blob so restarts resume where they lef
 import json
 import sqlite3
 import os
+from collections import deque
 
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'factions.db')
 
@@ -92,7 +93,7 @@ def _apply_state(sim, data):
     sim.disaster_msg     = data.get('disaster_msg', '')
     sim.disaster_col     = data.get('disaster_col', '#FF8800')
     sim.disaster_t       = data.get('disaster_t', 0.0)
-    sim.disaster_history = data.get('disaster_history', [])
+    sim.disaster_history = deque(data.get('disaster_history', []), maxlen=4)
     sim.next_disaster_t  = data.get('next_disaster_t', 65.0)
     sim.faction_keys     = data.get('faction_keys', [])
     sim.factions         = data.get('factions', {})
