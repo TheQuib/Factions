@@ -361,9 +361,9 @@ function drawUnit(e){
     case 'hive_soldier':  drawHiveSoldier(e.x,e.y,fid,f,fl);break;
     case 'hive_host':     drawHiveHost(e.x,e.y,fid,f,fl);break;
     case 'hive_mite':     drawHiveMite(e.x,e.y,fid);break;
-    case 'wiz_fire':case 'wiz_storm':case 'wiz_necro':
+    case 'fire_mage':case 'water_mage':case 'earth_mage':case 'air_mage':case 'lich':
       drawWizard(e.x,e.y,fid,e.utype,f,fl);break;
-    case 'skeleton':      drawSkeleton(e.x,e.y,f,fl);break;
+    case 'crypt_skeleton': drawSkeleton(e.x,e.y,f,fl);break;
     case 'elf_archer':    drawElfArcher(e.x,e.y,fid,f,fl,sa);break;
     case 'elf_rogue':     drawElfRogue(e.x,e.y,fid,f,fl,sa);break;
     case 'pal_knight':    drawKnight(e.x,e.y,fid,f,fl);break;
@@ -431,7 +431,7 @@ function drawHiveMite(x,y,fid){
 }
 function drawWizard(x,y,fid,utype,f,fl){
   const d=getFaction(fid);
-  const mc=utype==='wiz_fire'?'#FF6622':utype==='wiz_storm'?'#7799FF':'#BB44DD';
+  const mc=utype==='fire_mage'?'#FF6622':utype==='water_mage'?'#44AAFF':utype==='earth_mage'?'#66AA33':utype==='air_mage'?'#99CCFF':'#BB44DD';
   ctx.save();ctx.translate(x,y);if(f<0)ctx.scale(-1,1);
   if(fl>0){ctx.fillStyle=`rgba(150,180,255,${fl*3})`;ctx.fillRect(-10,-23,20,30);}
   ctx.fillStyle=d.lo;ctx.fillRect(-8,-3,16,16);ctx.fillStyle=d.color;ctx.fillRect(-6,-2,12,14);
@@ -570,7 +570,8 @@ function drawTitan(e){
       case 'elem_water': drawWaterTitan(e.x,e.y,e.flash);break;
       case 'elem_earth': drawEarthTitan(e.x,e.y,e.flash);break;
       case 'elem_air':   drawAirTitan(e.x,e.y,e.flash);break;
-      case 'chaos_titan':drawChaosTitan(e.x,e.y,e.flash);break;
+      case 'chaos_titan': drawChaosTitan(e.x,e.y,e.flash);break;
+      case 'death_titan': drawDeathTitan(e.x,e.y,e.flash);break;
     }
   }
   const bw=60,pct=Math.max(0,e.hp/e.max_hp),lpct=Math.max(0,e.life/270);
@@ -625,6 +626,18 @@ function drawAirTitan(x,y,fl){
   ctx.fillStyle='rgba(200,220,255,.42)';for(let i=0;i<4;i++)ctx.fillRect(-20+i*11,4+Math.sin(t*3+i)*P,7,P);
   ctx.fillStyle='#CCDDFF';ctx.fillRect(-23,-11,8,11);ctx.fillRect(15,-11,8,11);
   ctx.fillStyle='#FFFFFF';ctx.fillRect(-25,5,9,9);ctx.fillRect(16,5,9,9);ctx.restore();
+}
+function drawDeathTitan(x,y,fl){
+  ctx.save();ctx.translate(x,y);const t=performance.now()*.002;
+  if(fl>0){ctx.fillStyle=`rgba(180,210,180,${fl*3})`;ctx.fillRect(-22,-28,44,50);}
+  ctx.fillStyle='#1A180C';ctx.fillRect(-18,-22,36,44);ctx.fillStyle='#2E2A18';ctx.fillRect(-15,-20,30,40);
+  ctx.fillStyle='#C8C080';
+  for(let i=0;i<4;i++)ctx.fillRect(-12,-14+i*7,24,P+1);
+  const bc=['#C8C080','#E0D890','#A8A060'];
+  for(let i=0;i<5;i++){const h=6+Math.sin(t*1.5+i*1.2)*3;ctx.fillStyle=bc[i%3];ctx.fillRect(-10+i*5,-22-h,4,h+3);}
+  ctx.fillStyle='#2E2A18';ctx.fillRect(-24,-14,8,12);ctx.fillRect(16,-14,8,12);
+  ctx.fillStyle='#88FF44';ctx.fillRect(-6,-15,4,4);ctx.fillRect(2,-15,4,4);
+  ctx.restore();
 }
 function drawChaosTitan(x,y,fl){
   ctx.save();ctx.translate(x,y);const t=performance.now()*.003;
